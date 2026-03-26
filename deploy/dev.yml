@@ -1,0 +1,149 @@
+#### 开发环境配置文件,放在backend/config/env目录下,文件名必须以.yml结尾。
+application:
+  domain: "http://127.0.0.1:8080"
+  host: "127.0.0.1"
+  ishttps: false
+  mode: "develop"
+  name: "admin"
+  port: "8080"
+  readtimeout: 10
+  writertimeout: 30
+  timezone: "Asia/Shanghai"
+
+database:
+  dbtype: "mysql"
+  # 本地开发数据库地址。
+  host: "127.0.0.1"
+  port: "3306"
+  name: "test"
+  username: "root"
+  # 本地开发数据库密码。请替换为你自己的值。
+  password: ""
+  maxidleconn: 50
+  maxopenconn: 25
+  maxlifeseconds: 30
+
+redis:
+  # 本地 Redis 地址。
+  addr: "127.0.0.1:6379"
+  password: ""
+  # DB 0: 通用缓存；DB 1: 验证码/菜单/LLM；DB 2: 订单状态。
+  dbs: [0,1,2]
+  prefix: ""
+
+log:
+  sql: 1
+  compress: 0
+  consolestdout: 1
+  filestdout: 1
+  level: "debug"
+  localtime: 1
+  maxage: 30
+  maxbackups: 30
+  maxsize: 64
+  path: "./logs/sleep_admin"
+
+jwt:
+  secret: "optional-legacy-secret"
+  timeout: 7200
+  refresh_timeout: 604800
+
+ssl:
+  key: "config/pem/server.key"
+  pem: "config/pem/server.pem"
+
+news:
+  fsurl: ""
+  appid: ""
+  appsecret: ""
+
+sms:
+  enabled: false
+
+aliyun:
+  sms_access_id: ""
+  sms_access_secret: ""
+  sms_sign_name: ""
+  sms_template_code: ""
+
+email:
+  alias: "sleep-admin-dev"
+  host: ""
+  pass: ""
+  port: 465
+  user: ""
+
+llm:
+  provider: ""
+  api_key: ""
+  model: ""
+  system_prompt: ""
+  timeout_seconds: 60
+  session_ttl_seconds: 86400
+  max_history_messages: 20
+  max_message_chars: 4000
+  redis_db: 1
+
+elasticsearch:
+  host: ""
+  port: ""
+  scheme: ""
+  user: ""
+  pass: ""
+  debug: 0
+
+baidu:
+  voice:
+    appid: ""
+    apikey: ""
+    secretkey: ""
+
+upload:
+  driver: "local"
+  local_dir: "public/uploads"
+  public_path: "/uploads"
+  allowed_exts:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".webp"
+    - ".mp3"
+    - ".wav"
+    - ".aac"
+    - ".m4a"
+    - ".mp4"
+    - ".mov"
+    - ".avi"
+    - ".mkv"
+    - ".pdf"
+    - ".txt"
+    - ".md"
+  max_size_mb: 200
+  oss:
+    region: ""
+    endpoint: ""
+    bucket: ""
+    access_key_id: ""
+    access_key_secret: ""
+    session_token: ""
+    object_prefix: "uploads"
+    public_base_url: ""
+    disable_ssl: false
+    use_internal_endpoint: false
+    use_cname: false
+  cos:
+    region: "ap-beijing"
+    bucket_url: ""
+    secret_id: ""
+    secret_key: ""
+    path_style: false
+    object_prefix: "uploads"
+    public_base_url: ""
+  obs:
+    endpoint: ""
+    bucket: ""
+    access_key_id: ""
+    access_key_secret: ""
+    object_prefix: "uploads"
+    public_base_url: ""

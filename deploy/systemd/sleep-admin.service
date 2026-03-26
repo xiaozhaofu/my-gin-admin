@@ -1,0 +1,16 @@
+[Unit]
+Description=Sleep Admin API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/go_sleep_admin/backend
+ExecStart=/opt/go_sleep_admin/backend/bin/sleep-admin server -c prod
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

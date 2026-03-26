@@ -1,0 +1,5 @@
+.idea/
+.Ds_Store
+backend/logs
+backend/config/env/
+backend/config/pem/

@@ -1,0 +1,41 @@
+package cmd
+
+import (
+	"context"
+	"fmt"
+
+	"go_sleep_admin/internal/bootstrap"
+
+	"github.com/spf13/cobra"
+)
+
+const _UI = `
+ ██████╗  ██████╗        ██████╗ ██╗███╗   ██╗       █████╗ ██████╗ ██╗
+██╔════╝ ██╔═══██╗      ██╔════╝ ██║████╗  ██║      ██╔══██╗██╔══██╗██║
+██║  ███╗██║   ██║█████╗██║  ███╗██║██╔██╗ ██║█████╗███████║██████╔╝██║
+██║   ██║██║   ██║╚════╝██║   ██║██║██║╚██╗██║╚════╝██╔══██║██╔═══╝ ██║
+╚██████╔╝╚██████╔╝      ╚██████╔╝██║██║ ╚████║      ██║  ██║██║     ██║
+ ╚═════╝  ╚═════╝        ╚═════╝ ╚═╝╚═╝  ╚═══╝      ╚═╝  ╚═╝╚═╝     ╚═╝
+`
+
+func init() {
+	RegisterRootCommand(newServerCmd)
+}
+
+func newServerCmd(opts *rootOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:   "server",
+		Short: "Run the HTTP server and workers",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			app, err := bootstrap.NewApp(bootstrap.Options{
+				EnvFile: opts.envFile,
+			})
+			if err != nil {
+				return commandError("bootstrap app", err)
+			}
+			fmt.Printf("\x1b[32m%s\x1b[0m", _UI)
+
+			return commandError("run app", app.Run(context.Background()))
+		},
+	}
+}

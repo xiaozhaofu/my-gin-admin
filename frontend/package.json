@@ -1,0 +1,40 @@
+{
+  "name": "sleep-admin-ui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "sleep admin management ui",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vue-tsc && vite build --mode development",
+    "build:prod": "vue-tsc && vite build --mode production",
+    "build:test": "vue-tsc && vite build --mode test",
+    "preview": "vite preview",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "dependencies": {
+    "@arco-themes/vue-gi-demo": "^0.0.51",
+    "axios": "^1.6.8",
+    "pinia": "^2.3.0",
+    "pinia-plugin-persistedstate": "^3.2.1",
+    "vue": "^3.5.15",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@arco-design/web-vue": "^2.57.0",
+    "@types/node": "^22.13.11",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "postcss": "^8.4.38",
+    "postcss-preset-env": "^9.5.2",
+    "sass": "^1.77.8",
+    "terser": "^5.29.2",
+    "typescript": "^5.2.2",
+    "vite": "^6.3.5",
+    "vue-tsc": "^2.2.4"
+  },
+  "engines": {
+    "node": ">= 18.12.0",
+    "pnpm": ">= 8.7.0"
+  }
+}
