@@ -11,6 +11,7 @@ type Module struct {
 	menuHandler          *handler.MenuHandler
 	articleHandler       *handler.ArticleHandler
 	channelHandler       *handler.ChannelHandler
+	orderHandler         *handler.OrderHandler
 	uploadHandler        *handler.UploadHandler
 	authMiddleware       gin.HandlerFunc
 	permissionMiddleware gin.HandlerFunc
@@ -21,6 +22,7 @@ func NewModule(
 	menuHandler *handler.MenuHandler,
 	articleHandler *handler.ArticleHandler,
 	channelHandler *handler.ChannelHandler,
+	orderHandler *handler.OrderHandler,
 	uploadHandler *handler.UploadHandler,
 	authMiddleware, permissionMiddleware, operationMiddleware gin.HandlerFunc,
 ) *Module {
@@ -28,6 +30,7 @@ func NewModule(
 		menuHandler:          menuHandler,
 		articleHandler:       articleHandler,
 		channelHandler:       channelHandler,
+		orderHandler:         orderHandler,
 		uploadHandler:        uploadHandler,
 		authMiddleware:       authMiddleware,
 		permissionMiddleware: permissionMiddleware,
@@ -45,8 +48,12 @@ func (m *Module) RegisterRoutes(router *gin.RouterGroup) {
 	group.POST("/channels", m.channelHandler.Create)
 	group.PUT("/channels/:id", m.channelHandler.Update)
 	group.PUT("/channels/status", m.channelHandler.BatchStatus)
+	group.GET("/orders", m.orderHandler.List)
+	group.GET("/orders/export", m.orderHandler.Export)
+	group.GET("/orders/:id", m.orderHandler.Detail)
 	group.POST("/menus", m.menuHandler.Create)
 	group.PUT("/menus/:id", m.menuHandler.Update)
+	group.PUT("/menus/status", m.menuHandler.BatchStatus)
 	group.DELETE("/menus/:id", m.menuHandler.Delete)
 
 	group.GET("/articles", m.articleHandler.List)

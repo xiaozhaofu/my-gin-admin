@@ -17,7 +17,7 @@
         <template #title>公共配置</template>
         <a-form :model="form" layout="vertical">
           <a-row :gutter="16">
-            <a-col :xs="24" :lg="8">
+            <a-col :xs="24" :lg="6">
               <a-form-item label="文章类型">
                 <a-select v-model="form.type">
                   <a-option :value="1">纯文本</a-option>
@@ -27,7 +27,15 @@
                 </a-select>
               </a-form-item>
             </a-col>
-            <a-col :xs="24" :lg="16">
+            <a-col :xs="24" :lg="6">
+              <a-form-item label="是否收费">
+                <a-select v-model="form.is_paid">
+                  <a-option :value="0">免费</a-option>
+                  <a-option :value="1">收费</a-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :xs="24" :lg="12">
               <a-form-item label="三级菜单">
                 <MenuMultiSelector v-model="form.menu_ids" :menus="menuTree" placeholder="点击选择第三级分类" />
                 <div class="field-tip">直接展示三级菜单，只允许勾选第三级叶子节点，可多选，最终同步写入 `article_menus` 中间表。</div>
@@ -101,7 +109,6 @@
           </a-row>
 
           <div class="option-row">
-            <a-checkbox :model-value="form.is_paid === 1" @change="form.is_paid = $event ? 1 : 0">付费</a-checkbox>
             <a-checkbox :model-value="form.is_top === 1" @change="form.is_top = $event ? 1 : 0">置顶</a-checkbox>
             <a-checkbox :model-value="form.is_hot === 1" @change="form.is_hot = $event ? 1 : 0">热门</a-checkbox>
             <a-checkbox :model-value="form.is_recommend === 1" @change="form.is_recommend = $event ? 1 : 0">推荐</a-checkbox>

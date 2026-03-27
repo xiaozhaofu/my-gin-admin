@@ -17,4 +17,5 @@ export const menuTreeAPI = () => client.get<any, ApiResponse<ContentMenu[]>>("/m
 export const menuCascaderAPI = () => client.get<any, ApiResponse<ContentMenu[]>>("/menus/cascader");
 export const menuCreateAPI = (data: Record<string, unknown>) => client.post<any, ApiResponse<{ id: number }>>("/menus", data);
 export const menuUpdateAPI = (id: number, data: Record<string, unknown>) => client.put<any, ApiResponse<{ id: number }>>(`/menus/${id}`, data);
+export const menuStatusAPI = (data: { ids: number[]; is_active: boolean }) => client.put<any, ApiResponse<{ updated: number }>>("/menus/status", data);
 export const menuDeleteAPI = (id: number) => client.delete<any, ApiResponse<{ id: number }>>(`/menus/${id}`);

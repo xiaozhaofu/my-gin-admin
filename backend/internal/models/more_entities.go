@@ -66,30 +66,35 @@ func (UserArticleSave) TableName() string { return "user_article_saves" }
 
 type Order struct {
 	BaseID
-	OrderNo       string     `gorm:"column:order_no;size:64;uniqueIndex;not null" json:"order_no"`
-	OrderToken    string     `gorm:"column:order_token;size:64;not null" json:"order_token"`
-	UserID        int64      `gorm:"column:user_id;not null;index" json:"user_id"`
-	Status        int8       `gorm:"column:status;not null;default:0;index" json:"status"`
-	ProductID     uint64     `gorm:"column:product_id;not null" json:"product_id"`
-	ProductType   int8       `gorm:"column:product_type;not null" json:"product_type"`
-	ProductTitle  string     `gorm:"column:product_title;size:255;not null" json:"product_title"`
-	OriginalPrice int64      `gorm:"column:original_price;not null" json:"original_price"`
-	DiscountPrice int64      `gorm:"column:discount_price;not null;default:0" json:"discount_price"`
-	PayAmount     int64      `gorm:"column:pay_amount;not null" json:"pay_amount"`
-	PayMethod     int8       `gorm:"column:pay_method;not null;default:0" json:"pay_method"`
-	PayChannel    string     `gorm:"column:pay_channel;size:32;not null;default:''" json:"pay_channel"`
-	TradeNo       string     `gorm:"column:trade_no;size:128;not null;default:''" json:"trade_no"`
-	PaidAt        *time.Time `gorm:"column:paid_at" json:"paid_at"`
-	ChannelID     int64      `gorm:"column:channel_id;not null;index" json:"channel_id"`
-	ExpireAt      *time.Time `gorm:"column:expire_at" json:"expire_at"`
-	RefundStatus  int8       `gorm:"column:refund_status;not null;default:0" json:"refund_status"`
-	RefundAmount  int64      `gorm:"column:refund_amount;not null;default:0" json:"refund_amount"`
-	RefundNo      string     `gorm:"column:refund_no;size:128;not null;default:''" json:"refund_no"`
-	RefundAt      *time.Time `gorm:"column:refund_at" json:"refund_at"`
-	RefundReason  string     `gorm:"column:refund_reason;size:512;not null;default:''" json:"refund_reason"`
-	ClientIPStr   string     `gorm:"column:client_ip_str;size:45;not null;default:''" json:"client_ip"`
-	Remark        string     `gorm:"column:remark;size:512;not null;default:''" json:"remark"`
-	AdminRemark   string     `gorm:"column:admin_remark;size:512;not null;default:''" json:"admin_remark"`
+	OrderNo        string     `gorm:"column:order_no;size:64;uniqueIndex;not null" json:"order_no"`
+	OrderToken     string     `gorm:"column:order_token;size:64;not null" json:"order_token"`
+	UserID         int64      `gorm:"column:user_id;not null;index" json:"user_id"`
+	Status         int8       `gorm:"column:status;not null;default:0;index" json:"status"`
+	ProductID      uint64     `gorm:"column:product_id;not null" json:"product_id"`
+	ProductType    int8       `gorm:"column:product_type;not null" json:"product_type"`
+	ProductTitle   string     `gorm:"column:product_title;size:255;not null" json:"product_title"`
+	OriginalPrice  int64      `gorm:"column:original_price;not null" json:"original_price"`
+	DiscountPrice  int64      `gorm:"column:discount_price;not null;default:0" json:"discount_price"`
+	PayAmount      int64      `gorm:"column:pay_amount;not null" json:"pay_amount"`
+	CouponID       *uint64    `gorm:"column:coupon_id" json:"coupon_id"`
+	CouponAmount   int64      `gorm:"column:coupon_amount;not null;default:0" json:"coupon_amount"`
+	PayMethod      int8       `gorm:"column:pay_method;not null;default:0" json:"pay_method"`
+	PayChannel     string     `gorm:"column:pay_channel;size:32;not null;default:''" json:"pay_channel"`
+	TradeNo        string     `gorm:"column:trade_no;size:128;not null;default:''" json:"trade_no"`
+	PaidAt         *time.Time `gorm:"column:paid_at" json:"paid_at"`
+	ChannelID      int64      `gorm:"column:channel_id;not null;index" json:"channel_id"`
+	ExpireAt       *time.Time `gorm:"column:expire_at" json:"expire_at"`
+	AccessExpireAt *time.Time `gorm:"column:access_expire_at" json:"access_expire_at"`
+	DeliveredAt    *time.Time `gorm:"column:delivered_at" json:"delivered_at"`
+	RefundStatus   int8       `gorm:"column:refund_status;not null;default:0" json:"refund_status"`
+	RefundAmount   int64      `gorm:"column:refund_amount;not null;default:0" json:"refund_amount"`
+	RefundNo       string     `gorm:"column:refund_no;size:128;not null;default:''" json:"refund_no"`
+	RefundAt       *time.Time `gorm:"column:refund_at" json:"refund_at"`
+	RefundReason   string     `gorm:"column:refund_reason;size:512;not null;default:''" json:"refund_reason"`
+	ClientIP       []byte     `gorm:"column:client_ip;type:varbinary(16)" json:"-"`
+	ClientIPStr    string     `gorm:"column:client_ip_str;size:45;not null;default:''" json:"client_ip"`
+	Remark         string     `gorm:"column:remark;size:512;not null;default:''" json:"remark"`
+	AdminRemark    string     `gorm:"column:admin_remark;size:512;not null;default:''" json:"admin_remark"`
 	BaseTimeField
 }
 

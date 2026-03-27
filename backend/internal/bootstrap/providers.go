@@ -126,6 +126,7 @@ func newProviders(runtime *Runtime) (*providerSet, error) {
 			components.Handlers.Menu,
 			components.Handlers.Article,
 			components.Handlers.Channel,
+			components.Handlers.Order,
 			components.Handlers.Upload,
 			authMiddleware,
 			permissionMiddleware,

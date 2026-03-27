@@ -25,5 +25,32 @@ func (r *MenuRepository) ByID(id int64) (*models.Menu, error) {
 	return &item, nil
 }
 
-func (r *MenuRepository) Save(item *models.Menu) error { return r.db.Save(item).Error }
-func (r *MenuRepository) Delete(id int64) error        { return r.db.Delete(&models.Menu{}, id).Error }
+func (r *MenuRepository) Save(item *models.Menu) error {
+	if item.ID == 0 {
+		return r.db.Create(item).Error
+	}
+
+	updates := map[string]any{
+		"name":       item.Name,
+		"parent_id":  item.ParentID,
+		"level":      item.Level,
+		"sort_order": item.SortOrder,
+		"is_active":  item.IsActive,
+		"page_path":  item.PagePath,
+		"icon":       item.Icon,
+		"admin_id":   item.AdminID,
+		"updated_at": gorm.Expr("CURRENT_TIMESTAMP(3)"),
+	}
+	return r.db.Model(&models.Menu{}).Where("id = ?", item.ID).Updates(updates).Error
+}
+
+func (r *MenuRepository) UpdateStatus(ids []int64, isActive bool) error {
+	return r.db.Model(&models.Menu{}).
+		Where("id IN ?", ids).
+		Updates(map[string]any{
+			"is_active":  isActive,
+			"updated_at": gorm.Expr("CURRENT_TIMESTAMP(3)"),
+		}).Error
+}
+
+func (r *MenuRepository) Delete(id int64) error { return r.db.Delete(&models.Menu{}, id).Error }

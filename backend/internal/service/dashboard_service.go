@@ -110,6 +110,8 @@ func (s *DashboardService) Overview() (*DashboardPayload, error) {
 				Items: []DashboardShortcut{
 					{Path: "/articles", Title: "文章管理", Permission: "/api/v1/articles#GET", Icon: "form", Tip: "内容列表与编辑"},
 					{Path: "/articles/new", Title: "新增文章", Permission: "/api/v1/articles#POST", Icon: "add-voucher", Tip: "快速创建新内容"},
+					{Path: "/channels", Title: "渠道管理", Permission: "/api/v1/channels#GET", Icon: "list", Tip: "维护内容渠道和发布来源"},
+					{Path: "/orders", Title: "订单管理", Permission: "/api/v1/orders#GET", Icon: "list", Tip: "查看支付订单、导出和详情核对"},
 					{Path: "/uploads", Title: "资源中心", Permission: "/api/v1/uploads#GET", Icon: "folder-open", Tip: "管理图片音视频资源"},
 					{Path: "/content-menus", Title: "内容菜单", Permission: "/api/v1/menus/tree#GET", Icon: "classify", Tip: "维护三级菜单结构"},
 				},

@@ -6,7 +6,7 @@
           <div class="hero-badge">Content Admin Dashboard</div>
           <div class="hero-title">内容管理后台工作台</div>
           <div class="hero-sub">
-            对齐参考首页结构，集中展示常用功能、第三板指标、财务指标、销售额趋势和三级内容菜单。
+            首页聚焦核心经营数据，不再展示内容菜单和通用快捷区，直接保留订单、财务和趋势看板。
           </div>
         </div>
         <div class="hero-side">
@@ -17,34 +17,6 @@
           <div class="hero-stat">
             <div class="hero-stat-label">权限角色</div>
             <div class="hero-stat-value">{{ session.profile?.roles?.join(" / ") || "暂无" }}</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel-box">
-        <div class="box-title">
-          <div>常用功能</div>
-          <div class="box-sub">按业务域分组，整体结构参考 ginfast 首页</div>
-        </div>
-        <a-divider :margin="16" />
-        <div class="group-list">
-          <div v-for="group in combinedShortcutGroups" :key="group.key" class="group-card">
-            <div class="group-card-title">
-              <s-svg-icon :name="group.icon" :size="22" />
-              <span>{{ group.title }}</span>
-            </div>
-            <a-grid class="shortcut-grid" :cols="{ xs: 1, sm: 2, lg: 2, xl: 3 }" :col-gap="16" :row-gap="16">
-              <a-grid-item v-for="item in group.items" :key="item.path">
-                <a-card hoverable class="shortcut-card" @click="goToShortcut(item)">
-                  <div class="shortcut-icon">
-                    <a-image v-if="isImageIcon(item.icon)" :src="item.icon" width="28" height="28" fit="cover" />
-                    <s-svg-icon v-else :name="item.icon" :size="28" />
-                  </div>
-                  <div class="shortcut-title">{{ item.title }}</div>
-                  <div class="shortcut-tip">{{ item.tip }}</div>
-                </a-card>
-              </a-grid-item>
-            </a-grid>
           </div>
         </div>
       </section>
@@ -121,57 +93,23 @@
         <DataBox :trend="trendData" :pie="pieData" />
       </section>
 
-      <section class="panel-box">
+      <section v-if="orderOpsEntries.length" class="panel-box">
         <div class="box-title">
-          <div>三级内容菜单</div>
-          <div class="box-sub">直接读取 `menus` 数据表，按父子层级展示</div>
+          <div>订单运营</div>
+          <div class="box-sub">围绕订单查询、支付核单和退款巡检的快捷入口</div>
         </div>
         <a-divider :margin="16" />
-        <div class="menu-tree-panel">
-          <div v-if="menuTree.length === 0" class="menu-empty">
-            <a-empty description="当前没有内容菜单数据" />
-          </div>
-          <div v-else class="menu-root-list">
-            <div v-for="root in menuTree" :key="root.id" class="menu-root-card">
-              <div class="menu-root-title">
-                <span class="menu-root-marker"></span>
-                <a-space>
-                  <a-image v-if="isImageIcon(root.icon)" :src="root.icon" width="18" height="18" fit="cover" />
-                  <s-svg-icon v-else-if="root.icon" :name="root.icon" :size="18" />
-                  <span>{{ root.name }}</span>
-                </a-space>
+        <div class="order-ops-grid">
+          <a-card v-for="entry in orderOpsEntries" :key="entry.key" hoverable class="order-ops-card" @click="goToOrderShortcut(entry)">
+            <div class="order-ops-head">
+              <div class="order-ops-icon">
+                <s-svg-icon :name="entry.icon" :size="24" />
               </div>
-              <div class="menu-root-meta">{{ levelLabel(root.level) }}菜单 · 页面路径：{{ root.page_path || "-" }}</div>
-              <div v-if="root.children?.length" class="menu-children">
-                <div v-for="child in root.children" :key="child.id" class="menu-child-card">
-                  <div class="menu-child-title">
-                    <a-space>
-                      <a-image v-if="isImageIcon(child.icon)" :src="child.icon" width="16" height="16" fit="cover" />
-                      <s-svg-icon v-else-if="child.icon" :name="child.icon" :size="16" />
-                      <span>{{ child.name }}</span>
-                    </a-space>
-                    <a-tag size="small" color="arcoblue">{{ levelLabel(child.level) }}</a-tag>
-                  </div>
-                  <div class="menu-child-path">页面路径：{{ child.page_path || "-" }}</div>
-                  <div v-if="child.children?.length" class="menu-grandchildren">
-                    <div v-for="leaf in child.children" :key="leaf.id" class="menu-leaf-card">
-                      <div class="menu-leaf-title">
-                        <a-space>
-                          <a-image v-if="isImageIcon(leaf.icon)" :src="leaf.icon" width="14" height="14" fit="cover" />
-                          <s-svg-icon v-else-if="leaf.icon" :name="leaf.icon" :size="14" />
-                          <span>{{ leaf.name }}</span>
-                        </a-space>
-                        <a-tag size="small" color="green">{{ levelLabel(leaf.level) }}</a-tag>
-                      </div>
-                      <div class="menu-leaf-meta">页面路径：{{ leaf.page_path || "-" }}</div>
-                    </div>
-                  </div>
-                  <div v-else class="menu-child-empty">当前二级菜单下暂无三级菜单</div>
-                </div>
-              </div>
-              <div v-else class="menu-child-empty">当前一级菜单下暂无子菜单</div>
+              <a-tag :color="entry.tagColor">{{ entry.tag }}</a-tag>
             </div>
-          </div>
+            <div class="order-ops-title">{{ entry.title }}</div>
+            <div class="order-ops-tip">{{ entry.tip }}</div>
+          </a-card>
         </div>
       </section>
     </div>
@@ -182,31 +120,16 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Message } from "@arco-design/web-vue";
-import { dashboardAPI, type DashboardFinanceItem, type DashboardMetric, type DashboardPieItem, type DashboardShortcutGroup, type DashboardShortcutItem, type DashboardTrendItem } from "@/api/dashboard";
-import { menuTreeAPI, type ContentMenu } from "@/api/menu";
+import { dashboardAPI, type DashboardFinanceItem, type DashboardMetric, type DashboardPieItem, type DashboardTrendItem } from "@/api/dashboard";
 import DataBox from "@/views/home/components/data-box.vue";
 import { useSessionStore } from "@/store/modules/session";
 
 const router = useRouter();
 const session = useSessionStore();
-const menuTree = ref<ContentMenu[]>([]);
 const metricCards = ref<DashboardMetric[]>([]);
-const shortcutGroups = ref<DashboardShortcutGroup[]>([]);
 const financeCards = ref<DashboardFinanceItem[]>([]);
 const trendData = ref<DashboardTrendItem[]>([]);
 const pieData = ref<DashboardPieItem[]>([]);
-
-type HomeShortcut = DashboardShortcutItem & {
-  menuID?: number;
-  pagePath?: string;
-};
-
-type HomeShortcutGroup = {
-  key: string;
-  title: string;
-  icon: string;
-  items: HomeShortcut[];
-};
 
 type FinancePanel = DashboardFinanceItem & {
   progress: number;
@@ -214,36 +137,15 @@ type FinancePanel = DashboardFinanceItem & {
   trendLabel: string;
 };
 
-const visibleShortcutGroups = computed<HomeShortcutGroup[]>(() =>
-  shortcutGroups.value
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => !item.permission || session.can(item.permission))
-    }))
-    .filter(group => group.items.length > 0)
-);
-
-const combinedShortcutGroups = computed<HomeShortcutGroup[]>(() => {
-  const groups = [...visibleShortcutGroups.value];
-  const contentEntries = menuTree.value.slice(0, 6).map(item => ({
-    path: "/articles",
-    title: item.name,
-    permission: "/api/v1/articles#GET",
-    icon: item.icon || "folder-menu",
-    tip: item.page_path ? `客户端页面：${item.page_path}` : "跳转到文章页并按菜单筛选",
-    menuID: item.id,
-    pagePath: item.page_path
-  }));
-  if (contentEntries.length > 0) {
-    groups.unshift({
-      key: "menu-entry",
-      title: "内容入口",
-      icon: "folder-menu",
-      items: contentEntries
-    });
-  }
-  return groups;
-});
+type OrderOpsEntry = {
+  key: string;
+  title: string;
+  tip: string;
+  icon: string;
+  tag: string;
+  tagColor: "arcoblue" | "green" | "orangered";
+  query?: Record<string, string>;
+};
 
 const overviewScore = computed(() => {
   if (metricCards.value.length === 0) return "0.0";
@@ -283,51 +185,52 @@ const financeSummary = computed(() => {
   };
 });
 
-const goTo = (path: string) => {
-  router.push(path);
-};
+const orderOpsEntries = computed<OrderOpsEntry[]>(() => {
+  if (!session.can("/api/v1/orders#GET")) return [];
+  return [
+    {
+      key: "all-orders",
+      title: "全部订单",
+      tip: "查看全部支付订单、详情和导出数据",
+      icon: "list",
+      tag: "总览",
+      tagColor: "arcoblue"
+    },
+    {
+      key: "paid-orders",
+      title: "已支付订单",
+      tip: "直接筛到已支付订单，适合运营核单和交易排查",
+      icon: "check-circle",
+      tag: "支付",
+      tagColor: "green",
+      query: { status: "10" }
+    },
+    {
+      key: "refund-orders",
+      title: "退款中订单",
+      tip: "直接筛到退款中订单，便于退款链路巡检和处理",
+      icon: "warning-circle",
+      tag: "退款",
+      tagColor: "orangered",
+      query: { status: "60" }
+    }
+  ];
+});
 
-const goToShortcut = (item: HomeShortcut) => {
-  if (item.menuID) {
-    router.push({ path: "/articles", query: { menu_id: String(item.menuID) } });
-    return;
-  }
-  goTo(item.path);
+const goToOrderShortcut = (entry: OrderOpsEntry) => {
+  router.push({
+    path: "/orders",
+    query: entry.query || {}
+  });
 };
-
-const isImageIcon = (icon?: string) => !!icon && /(\.png|\.jpg|\.jpeg|\.gif|\.webp|^https?:\/\/|^\/uploads\/)/i.test(icon);
-const levelLabel = (level?: number) => {
-  switch (level) {
-    case 1:
-      return "一级";
-    case 2:
-      return "二级";
-    case 3:
-      return "三级";
-    default:
-      return `第${level || 0}级`;
-  }
-};
-
-const countMenus = (items: ContentMenu[]): number =>
-  items.reduce((total, item) => total + 1 + countMenus(item.children || []), 0);
 
 const loadDashboard = async () => {
   try {
-    const [dashboardRes, menuRes] = await Promise.all([dashboardAPI(), menuTreeAPI()]);
-    shortcutGroups.value = dashboardRes.data.shortcut_groups;
+    const dashboardRes = await dashboardAPI();
     metricCards.value = dashboardRes.data.metrics;
     financeCards.value = dashboardRes.data.finance;
     trendData.value = dashboardRes.data.order_trend;
     pieData.value = dashboardRes.data.order_pie;
-    menuTree.value = menuRes.data;
-
-    if (!metricCards.value.find(item => item.key === "menus")) {
-      metricCards.value = [
-        ...metricCards.value,
-        { key: "menus", title: "内容菜单", value: String(countMenus(menuRes.data)), tip: "来自 menus 表", color: "#00b42a", trend: "up" }
-      ];
-    }
   } catch (error) {
     console.error("load dashboard failed", error);
     Message.error("首页数据加载失败");
@@ -428,98 +331,6 @@ onMounted(loadDashboard);
 }
 
 .box-sub {
-  font-size: $font-size-body-1;
-  color: $color-text-3;
-}
-
-.group-list {
-  display: grid;
-  gap: 20px;
-}
-
-.group-card-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  font-size: $font-size-title-1;
-  font-weight: 700;
-  color: $color-text-1;
-}
-
-.shortcut-card {
-  height: 100%;
-  min-height: 132px;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.shortcut-card:hover {
-  border-color: rgb(var(--primary-3));
-  box-shadow: 0 12px 24px rgb(22 93 255 / 10%);
-}
-
-.shortcut-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 14px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(22, 93, 255, 0.12), rgba(64, 128, 255, 0.18));
-  color: rgb(var(--primary-6));
-}
-
-.shortcut-title {
-  font-size: $font-size-body-3;
-  font-weight: 700;
-  color: $color-text-1;
-}
-
-.shortcut-tip {
-  margin-top: 8px;
-  font-size: $font-size-body-1;
-  line-height: 1.7;
-  color: $color-text-3;
-}
-
-.metric-card,
-.finance-card {
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
-}
-
-.metric-head,
-.finance-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: $color-text-2;
-}
-
-.metric-dot,
-.finance-dot {
-  box-sizing: border-box;
-  width: 10px;
-  height: 10px;
-  border: 3px solid;
-  border-radius: 50%;
-}
-
-.metric-value,
-.finance-value {
-  margin-top: 16px;
-  font-family: AliFangYuanTi, "PingFang SC", sans-serif;
-  font-size: 30px;
-  font-weight: 700;
-  color: $color-text-1;
-}
-
-.metric-tip {
   font-size: $font-size-body-1;
   color: $color-text-3;
 }
@@ -712,6 +523,21 @@ onMounted(loadDashboard);
   gap: 12px;
 }
 
+.finance-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $color-text-2;
+}
+
+.finance-dot {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border: 3px solid;
+  border-radius: 50%;
+}
+
 .finance-trend {
   padding: 4px 10px;
   border-radius: 999px;
@@ -719,6 +545,14 @@ onMounted(loadDashboard);
   font-size: 12px;
   font-weight: 600;
   color: var(--finance-accent);
+}
+
+.finance-value {
+  margin-top: 16px;
+  font-family: AliFangYuanTi, "PingFang SC", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: $color-text-1;
 }
 
 .finance-panel-sub {
@@ -741,121 +575,64 @@ onMounted(loadDashboard);
   border-radius: 999px;
 }
 
-.menu-tree-panel {
-  min-height: 160px;
-}
-
-.menu-root-list {
+.order-ops-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.menu-root-card {
-  padding: 18px;
-  border: 1px solid $color-border-1;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+.order-ops-card {
+  min-height: 158px;
+  border-radius: 16px;
+  border: 1px solid rgba(22, 93, 255, 0.08);
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 12px 24px rgb(15 23 42 / 5%);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.menu-root-title {
+.order-ops-card:hover {
+  border-color: rgb(var(--primary-3));
+  box-shadow: 0 14px 30px rgb(22 93 255 / 10%);
+}
+
+.order-ops-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: $font-size-title-1;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-ops-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(22, 93, 255, 0.12), rgba(64, 128, 255, 0.18));
+  color: rgb(var(--primary-6));
+}
+
+.order-ops-title {
+  margin-top: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: $color-text-1;
 }
 
-.menu-root-marker {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgb(var(--primary-6));
-}
-
-.menu-root-meta {
-  margin-top: 8px;
-  font-size: $font-size-body-1;
-  color: $color-text-3;
-}
-
-.menu-children {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.menu-child-card {
-  padding: 12px;
-  border-radius: 12px;
-  background: $color-fill-1;
-}
-
-.menu-child-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: $font-size-body-3;
-  font-weight: 600;
-}
-
-.menu-grandchildren {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.menu-leaf-card {
-  padding: 10px 12px;
-  border: 1px solid rgba(0, 180, 42, 0.12);
-  border-radius: 10px;
-  background: rgba(0, 180, 42, 0.04);
-}
-
-.menu-leaf-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-text-1;
-}
-
-.menu-leaf-meta {
-  margin-top: 6px;
+.order-ops-tip {
+  margin-top: 10px;
   font-size: 12px;
+  line-height: 1.8;
   color: $color-text-3;
-}
-
-.menu-child-path {
-  margin-top: 8px;
-  font-size: 12px;
-  color: $color-text-3;
-}
-
-.menu-child-empty {
-  margin-top: 12px;
-  font-size: $font-size-body-1;
-  color: $color-text-3;
-}
-
-.menu-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
 }
 
 @media (max-width: 1080px) {
-  .hero-panel {
-    grid-template-columns: 1fr;
-  }
-
+  .hero-panel,
   .scoreboard,
-  .finance-board {
+  .finance-board,
+  .order-ops-grid {
     grid-template-columns: 1fr;
   }
 }

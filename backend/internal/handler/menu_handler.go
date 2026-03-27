@@ -64,3 +64,16 @@ func (h *MenuHandler) Delete(c *gin.Context) {
 	}
 	response.OK(c, gin.H{"id": id})
 }
+
+func (h *MenuHandler) BatchStatus(c *gin.Context) {
+	var req dto.MenuBatchStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, 4000, err.Error())
+		return
+	}
+	if err := h.service.UpdateStatus(req.IDs, req.IsActive); err != nil {
+		response.Error(c, http.StatusBadRequest, 4000, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"updated": len(req.IDs)})
+}

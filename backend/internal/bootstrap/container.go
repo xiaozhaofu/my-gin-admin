@@ -21,6 +21,7 @@ type repositories struct {
 	Job       *repository.JobRepository
 	Log       *repository.LogRepository
 	Menu      *repository.MenuRepository
+	Order     *repository.OrderRepository
 	Role      *repository.RoleRepository
 	Session   *repository.SessionRepository
 	System    *repository.SystemRepository
@@ -38,6 +39,7 @@ func newRepositories(db *gorm.DB) repositories {
 		Job:       repository.NewJobRepository(db),
 		Log:       repository.NewLogRepository(db),
 		Menu:      repository.NewMenuRepository(db),
+		Order:     repository.NewOrderRepository(db),
 		Role:      repository.NewRoleRepository(db),
 		Session:   repository.NewSessionRepository(db),
 		System:    repository.NewSystemRepository(db),
@@ -55,6 +57,7 @@ type services struct {
 	Log       *service.LogService
 	Menu      *service.MenuService
 	Module    *service.ModuleService
+	Order     *service.OrderService
 	RBAC      *service.RBACService
 	Session   *service.SessionService
 	System    *service.SystemService
@@ -74,6 +77,7 @@ func newServices(db *gorm.DB, enforcer *casbin.Enforcer, jwtManager *auth.JWTMan
 		Log:       service.NewLogService(repos.Log),
 		Menu:      service.NewMenuService(repos.Menu),
 		Module:    service.NewModuleService(),
+		Order:     service.NewOrderService(repos.Order),
 		RBAC:      service.NewRBACService(db, repos.Role, repos.Admin, repos.AdminMenu, repos.DataScope, enforcer),
 		Session:   sessionService,
 		System:    service.NewSystemService(repos.System),
@@ -91,6 +95,7 @@ type handlers struct {
 	Log       *handler.LogHandler
 	Menu      *handler.MenuHandler
 	Module    *handler.ModuleHandler
+	Order     *handler.OrderHandler
 	RBAC      *handler.RBACHandler
 	Session   *handler.SessionHandler
 	System    *handler.SystemHandler
@@ -108,6 +113,7 @@ func newHandlers(services services, uploader storage.UploadGateway) handlers {
 		Log:       handler.NewLogHandler(services.Log),
 		Menu:      handler.NewMenuHandler(services.Menu),
 		Module:    handler.NewModuleHandler(services.Module),
+		Order:     handler.NewOrderHandler(services.Order),
 		RBAC:      handler.NewRBACHandler(services.RBAC),
 		Session:   handler.NewSessionHandler(services.Session),
 		System:    handler.NewSystemHandler(services.System),

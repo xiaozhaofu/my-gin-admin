@@ -189,7 +189,7 @@ const noticeItems: HeaderNotice[] = [
 
 const menuGroups = computed<MenuGroup[]>(() => {
   const home = menus.find(item => item.path === "/home");
-  const contentMenus = menus.filter(item => ["/articles", "/articles/batch", "/content-menus", "/channels", "/uploads"].includes(item.path));
+  const contentMenus = menus.filter(item => ["/articles", "/articles/batch", "/content-menus", "/channels", "/orders", "/uploads"].includes(item.path));
   const systemMenus = menus.filter(item => item.path.startsWith("/system/"));
   const capabilityMenus = menus.filter(item => item.path === "/modules");
 

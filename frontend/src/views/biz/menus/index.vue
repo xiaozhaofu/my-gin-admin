@@ -18,10 +18,21 @@
         <template #extra>
           <a-space wrap>
             <span class="toolbar-tip">读取 `menus` 数据表并按父子层级展示</span>
-            <a-button type="primary" @click="openCreate">新增菜单</a-button>
+            <a-button v-if="canBatch" :disabled="!currentPageKeys.length" @click="selectCurrentPage">选中当前页</a-button>
+            <a-button v-if="canBatch" :disabled="!selectedKeys.length" @click="clearSelected">取消选中</a-button>
+            <a-button v-if="canBatch" :disabled="!selectedKeys.length" @click="batchStatus(true)">批量启用</a-button>
+            <a-button v-if="canBatch" :disabled="!selectedKeys.length" @click="batchStatus(false)">批量禁用</a-button>
+            <a-button v-if="canCreate" type="primary" @click="openCreate">新增菜单</a-button>
           </a-space>
         </template>
-        <a-table :data="flatTree" row-key="id" :pagination="false">
+        <a-table
+          :data="flatTree"
+          row-key="id"
+          :pagination="false"
+          :row-selection="canBatch ? { type: 'checkbox' } : undefined"
+          :selected-keys="selectedKeys"
+          @selection-change="setSelected"
+        >
           <template #columns>
             <a-table-column title="菜单名称">
               <template #cell="{ record }">
@@ -64,13 +75,15 @@
               </template>
             </a-table-column>
             <a-table-column title="状态">
-              <template #cell="{ record }">{{ record.is_active ? "启用" : "禁用" }}</template>
+              <template #cell="{ record }">
+                <a-tag :color="record.is_active ? 'green' : 'gray'">{{ record.is_active ? "启用" : "禁用" }}</a-tag>
+              </template>
             </a-table-column>
             <a-table-column title="操作">
               <template #cell="{ record }">
                 <a-space>
-                  <a-button size="mini" @click="openEdit(record)">编辑</a-button>
-                  <a-button size="mini" status="danger" @click="remove(record.id)">删除</a-button>
+                  <a-button v-if="canEdit" size="mini" @click="openEdit(record)">编辑</a-button>
+                  <a-button v-if="canDelete" size="mini" status="danger" @click="remove(record.id)">删除</a-button>
                 </a-space>
               </template>
             </a-table-column>
@@ -116,17 +129,20 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { Message } from "@arco-design/web-vue";
-import { menuCreateAPI, menuDeleteAPI, menuTreeAPI, menuUpdateAPI, type ContentMenu } from "@/api/menu";
+import { menuCreateAPI, menuDeleteAPI, menuStatusAPI, menuTreeAPI, menuUpdateAPI, type ContentMenu } from "@/api/menu";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
+import { usePageSelection } from "@/hooks/usePageSelection";
+import { useSessionStore } from "@/store/modules/session";
 import { uploadFileAPI } from "@/api/upload";
 import type { UploadRecord } from "@/api/upload";
 import AssetLibraryModal from "@/components/article/asset-library-modal.vue";
 import { useUploadPreferenceStore } from "@/store/modules/upload-preference";
 
+const session = useSessionStore();
 const visible = ref(false);
 const iconLibraryVisible = ref(false);
 const items = ref<ContentMenu[]>([]);
-const { confirmDelete, confirmSave } = useConfirmAction();
+const { confirmDelete, confirmSave, confirmBatchHide, runConfirmed } = useConfirmAction();
 const current = reactive<any>({ id: 0, name: "", parent_id: undefined, sort_order: 0, is_active: true, page_path: "", icon: "" });
 const uploadPreference = useUploadPreferenceStore();
 
@@ -166,6 +182,20 @@ const flatTree = computed(() => {
   visit(items.value);
   return result;
 });
+
+const {
+  selectedKeys,
+  currentPageKeys,
+  setSelected,
+  selectCurrentPage,
+  clearSelected,
+  removeSelected
+} = usePageSelection(() => flatTree.value, item => item.id);
+
+const canCreate = computed(() => session.can("/api/v1/menus#POST"));
+const canEdit = computed(() => session.can("/api/v1/menus/:id#PUT"));
+const canDelete = computed(() => session.can("/api/v1/menus/:id#DELETE"));
+const canBatch = computed(() => session.can("/api/v1/menus/status#PUT"));
 
 const options = computed(() => {
   const convert = (nodes: ContentMenu[]): any[] =>
@@ -246,8 +276,31 @@ const remove = async (id: number) => {
   await confirmDelete(async () => {
     await menuDeleteAPI(id);
     Message.success("删除成功");
+    removeSelected(id);
     fetchTree();
   }, "这个内容菜单");
+};
+
+const batchStatus = async (isActive: boolean) => {
+  const action = async () => {
+    await menuStatusAPI({ ids: selectedKeys.value, is_active: isActive });
+    Message.success("状态已更新");
+    clearSelected();
+    fetchTree();
+  };
+
+  if (!isActive) {
+    await confirmBatchHide(action, "选中的内容菜单");
+    return;
+  }
+
+  await runConfirmed(
+    {
+      title: "确认批量启用",
+      content: "确认将选中的内容菜单批量设置为启用吗？"
+    },
+    action
+  );
 };
 
 const uploadIcon = async (option: any) => {

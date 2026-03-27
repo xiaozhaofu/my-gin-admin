@@ -1,8 +1,8 @@
 <template>
   <div class="login-page">
     <div class="hero">
-      <div class="hero-badge">生产级睡眠内容后台</div>
-      <h1>Sleep Admin Console</h1>
+      <div class="hero-badge">内容管理后台</div>
+      <h1>Content Admin Console</h1>
       <p>基于 Go + Gin + Casbin + Vue3 + Arco 的管理后台。</p>
     </div>
     <a-card class="login-card" :bordered="false">

@@ -115,11 +115,18 @@ func seed(cfg *v2config.Config, db *gorm.DB, enforcer *casbin.Enforcer, _ *auth.
 		{Title: "文章新增", Name: "article-create", Path: "/articles/create", Component: "biz/articles/form", Hidden: true, Permission: "article:create", Type: 2, Sort: 12, APIPath: "/api/v1/articles", Method: "POST"},
 		{Title: "文章编辑", Name: "article-update", Path: "/articles/:id", Component: "biz/articles/form", Hidden: true, Permission: "article:update", Type: 2, Sort: 13, APIPath: "/api/v1/articles/:id", Method: "PUT"},
 		{Title: "内容菜单", Name: "content-menu", Path: "/content-menus", Component: "biz/menus/index", Icon: "icon-apps", Permission: "menu:list", Type: 1, Sort: 20, APIPath: "/api/v1/menus/tree", Method: "GET"},
+		{Title: "内容菜单新增", Name: "content-menu-create", Path: "/content-menus/create", Component: "biz/menus/index", Hidden: true, Permission: "menu:create", Type: 2, Sort: 21, APIPath: "/api/v1/menus", Method: "POST"},
+		{Title: "内容菜单编辑", Name: "content-menu-update", Path: "/content-menus/:id", Component: "biz/menus/index", Hidden: true, Permission: "menu:update", Type: 2, Sort: 22, APIPath: "/api/v1/menus/:id", Method: "PUT"},
+		{Title: "内容菜单状态", Name: "content-menu-status", Path: "/content-menus/status", Component: "biz/menus/index", Hidden: true, Permission: "menu:status", Type: 2, Sort: 23, APIPath: "/api/v1/menus/status", Method: "PUT"},
+		{Title: "内容菜单删除", Name: "content-menu-delete", Path: "/content-menus/delete", Component: "biz/menus/index", Hidden: true, Permission: "menu:delete", Type: 2, Sort: 24, APIPath: "/api/v1/menus/:id", Method: "DELETE"},
 		{Title: "渠道管理", Name: "channel-list", Path: "/channels", Component: "biz/channels/index", Icon: "icon-list", Permission: "channel:list", Type: 1, Sort: 25, APIPath: "/api/v1/channels", Method: "GET"},
 		{Title: "渠道新增", Name: "channel-create", Path: "/channels/create", Component: "biz/channels/index", Hidden: true, Permission: "channel:create", Type: 2, Sort: 26, APIPath: "/api/v1/channels", Method: "POST"},
 		{Title: "渠道编辑", Name: "channel-update", Path: "/channels/:id", Component: "biz/channels/index", Hidden: true, Permission: "channel:update", Type: 2, Sort: 27, APIPath: "/api/v1/channels/:id", Method: "PUT"},
 		{Title: "渠道状态", Name: "channel-status", Path: "/channels/status", Component: "biz/channels/index", Hidden: true, Permission: "channel:status", Type: 2, Sort: 28, APIPath: "/api/v1/channels/status", Method: "PUT"},
-		{Title: "资源上传", Name: "upload-file", Path: "/uploads", Component: "biz/uploads/index", Icon: "icon-upload", Permission: "upload:list", Type: 1, Sort: 30, APIPath: "/api/v1/uploads", Method: "GET"},
+		{Title: "订单管理", Name: "order-list", Path: "/orders", Component: "biz/orders/index", Icon: "icon-order", Permission: "order:list", Type: 1, Sort: 29, APIPath: "/api/v1/orders", Method: "GET"},
+		{Title: "订单详情", Name: "order-detail", Path: "/orders/:id", Component: "biz/orders/index", Hidden: true, Permission: "order:detail", Type: 2, Sort: 30, APIPath: "/api/v1/orders/:id", Method: "GET"},
+		{Title: "订单导出", Name: "order-export", Path: "/orders/export", Component: "biz/orders/index", Hidden: true, Permission: "order:export", Type: 2, Sort: 31, APIPath: "/api/v1/orders/export", Method: "GET"},
+		{Title: "资源上传", Name: "upload-file", Path: "/uploads", Component: "biz/uploads/index", Icon: "icon-upload", Permission: "upload:list", Type: 1, Sort: 35, APIPath: "/api/v1/uploads", Method: "GET"},
 		{Title: "系统管理", Name: "system", Path: "/system", Component: "Layout", Icon: "icon-settings", Type: 1, Sort: 90},
 		{Title: "后台菜单", Name: "admin-menu-list", Path: "/system/admin-menus", Component: "biz/system/admin-menus", Permission: "admin_menu:list", Type: 1, Sort: 90, APIPath: "/api/v1/admin-menus/tree", Method: "GET"},
 		{Title: "字典管理", Name: "dict-list", Path: "/system/dicts", Component: "biz/system/dicts", Permission: "dict:list", Type: 1, Sort: 93, APIPath: "/api/v1/dict-types", Method: "GET"},
@@ -152,7 +159,7 @@ func seed(cfg *v2config.Config, db *gorm.DB, enforcer *casbin.Enforcer, _ *auth.
 	var reviewerMenuIDs []int64
 	for _, menu := range menus {
 		switch {
-		case strings.HasPrefix(menu.Name, "article") || strings.Contains(menu.Name, "upload") || strings.Contains(menu.Name, "content-menu"):
+		case strings.HasPrefix(menu.Name, "article") || strings.HasPrefix(menu.Name, "order") || strings.Contains(menu.Name, "upload") || strings.Contains(menu.Name, "content-menu") || strings.Contains(menu.Name, "channel"):
 			editorMenuIDs = append(editorMenuIDs, menu.ID)
 		case strings.Contains(menu.Name, "article-list") || strings.Contains(menu.Name, "content-menu"):
 			reviewerMenuIDs = append(reviewerMenuIDs, menu.ID)

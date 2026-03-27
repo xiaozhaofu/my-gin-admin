@@ -108,6 +108,10 @@ func (s *MenuService) Delete(id int64) error {
 	return s.repo.Delete(id)
 }
 
+func (s *MenuService) UpdateStatus(ids []int64, isActive bool) error {
+	return s.repo.UpdateStatus(ids, isActive)
+}
+
 var ErrMenuHasChildren = &MenuServiceError{Message: "当前菜单存在子级，不能直接删除"}
 var ErrMenuParentNotFound = &MenuServiceError{Message: "父级菜单不存在"}
 var ErrMenuParentTooDeep = &MenuServiceError{Message: "当前仅支持三级菜单，不能继续向下添加"}

@@ -94,21 +94,35 @@
           <a-card class="article-panel" :bordered="false">
             <template #title>发布设置</template>
             <a-form :model="form" layout="vertical">
-              <a-form-item label="文章类型">
-                <a-select v-model="form.type">
-                  <a-option :value="1">纯文本</a-option>
-                  <a-option :value="2">视频</a-option>
-                  <a-option :value="4">音频</a-option>
-                  <a-option :value="6">图片</a-option>
-                </a-select>
-              </a-form-item>
-              <a-form-item label="渠道">
-                <a-select v-model="form.channel_id" allow-clear placeholder="请选择渠道">
-                  <a-option v-for="item in channels" :key="item.id" :value="item.id">
-                    {{ item.name }}（{{ item.code }}）
-                  </a-option>
-                </a-select>
-              </a-form-item>
+              <a-row :gutter="12">
+                <a-col :span="8">
+                  <a-form-item label="文章类型">
+                    <a-select v-model="form.type">
+                      <a-option :value="1">纯文本</a-option>
+                      <a-option :value="2">视频</a-option>
+                      <a-option :value="4">音频</a-option>
+                      <a-option :value="6">图片</a-option>
+                    </a-select>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                  <a-form-item label="渠道">
+                    <a-select v-model="form.channel_id" allow-clear placeholder="请选择渠道">
+                      <a-option v-for="item in channels" :key="item.id" :value="item.id">
+                        {{ item.name }}（{{ item.code }}）
+                      </a-option>
+                    </a-select>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                  <a-form-item label="是否收费">
+                    <a-select v-model="form.is_paid">
+                      <a-option :value="0">免费</a-option>
+                      <a-option :value="1">收费</a-option>
+                    </a-select>
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
               <a-row :gutter="12">
                 <a-col :span="12">
@@ -232,6 +246,7 @@ const form = reactive<Record<string, any>>({
   cover_type: "1",
   menu_ids: [],
   channel_id: undefined,
+  is_paid: 0,
   status: 1,
   content: ""
 });

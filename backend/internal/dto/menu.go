@@ -9,6 +9,11 @@ type MenuUpsertRequest struct {
 	Icon      string `json:"icon"`
 }
 
+type MenuBatchStatusRequest struct {
+	IDs      []int64 `json:"ids" binding:"required,min=1"`
+	IsActive bool    `json:"is_active"`
+}
+
 type RoleUpsertRequest struct {
 	Name        string  `json:"name" binding:"required"`
 	Code        string  `json:"code" binding:"required"`
