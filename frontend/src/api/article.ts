@@ -5,9 +5,12 @@ export interface ArticleItem {
   title: string;
   summary: string;
   type: number;
-  cover: string;
+  cover_large: string;
+  cover_medium: string;
+  cover_small: string;
   cover_type: string;
   menu_id: number;
+  menu_ids?: number[];
   channel_id: number;
   sort_order: number;
   is_paid: number;
@@ -35,6 +38,9 @@ export interface ArticleBatchCreateItem {
   title: string;
   summary: string;
   cover?: string;
+  cover_large?: string;
+  cover_medium?: string;
+  cover_small?: string;
   cover_type?: string;
   content: string;
 }
@@ -42,8 +48,12 @@ export interface ArticleBatchCreateItem {
 export interface ArticleBatchCreatePayload {
   type: number;
   cover: string;
+  cover_large?: string;
+  cover_medium?: string;
+  cover_small?: string;
   cover_type: string;
   menu_id: number;
+  menu_ids?: number[];
   channel_id: number;
   sort_order?: number;
   is_paid?: number;

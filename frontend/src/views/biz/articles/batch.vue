@@ -27,12 +27,16 @@
                 </a-select>
               </a-form-item>
             </a-col>
-            <a-col :xs="24" :lg="8">
+            <a-col :xs="24" :lg="16">
               <a-form-item label="三级菜单">
-                <a-cascader v-model="form.menu_id" :options="menuOptions" allow-clear placeholder="请选择内容菜单" />
+                <MenuMultiSelector v-model="form.menu_ids" :menus="menuTree" placeholder="点击选择第三级分类" />
+                <div class="field-tip">直接展示三级菜单，只允许勾选第三级叶子节点，可多选，最终同步写入 `article_menus` 中间表。</div>
               </a-form-item>
             </a-col>
-            <a-col :xs="24" :lg="8">
+          </a-row>
+
+          <a-row :gutter="16">
+            <a-col :xs="24" :lg="6">
               <a-form-item label="渠道">
                 <a-select v-model="form.channel_id" allow-clear placeholder="请选择渠道">
                   <a-option v-for="item in channels" :key="item.id" :value="item.id">
@@ -41,9 +45,6 @@
                 </a-select>
               </a-form-item>
             </a-col>
-          </a-row>
-
-          <a-row :gutter="16">
             <a-col :xs="24" :lg="6">
               <a-form-item label="状态">
                 <a-input-number v-model="form.status" :min="1" :max="4" style="width: 100%" />
@@ -59,9 +60,12 @@
                 <a-input v-model="form.cover_type" />
               </a-form-item>
             </a-col>
-            <a-col :xs="24" :lg="6">
+          </a-row>
+
+          <a-row :gutter="16">
+            <a-col :xs="24" :lg="12">
               <a-form-item label="默认存储类型">
-                <a-select v-model="assetProvider" placeholder="选择默认上传到哪个存储">
+                <a-select v-model="assetProvider" placeholder="选择默认上传到哪个存储" style="width: 160px">
                   <a-option value="aliyun-oss">阿里云 OSS</a-option>
                   <a-option value="tencent-cos">腾讯云 COS</a-option>
                   <a-option value="huawei-obs">华为云 OBS</a-option>
@@ -73,18 +77,25 @@
           </a-row>
 
           <a-row :gutter="16">
-            <a-col :xs="24" :lg="16">
+            <a-col :span="24">
               <a-form-item label="公共封面图">
-                <a-input v-model="form.cover" placeholder="每条文章可继承这个封面，也允许单独覆盖" />
-              </a-form-item>
-            </a-col>
-            <a-col :xs="24" :lg="8">
-              <a-form-item label="上传封面">
-                <a-upload :custom-request="uploadCover" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
-                  <template #upload-button>
-                    <a-button type="outline" long>上传公共封面</a-button>
-                  </template>
-                </a-upload>
+                <div class="cover-fields-grid">
+                  <div v-for="item in coverFields" :key="item.key" class="cover-field-block">
+                    <a-input v-model="form[item.key]" :placeholder="item.placeholder" />
+                    <a-upload :custom-request="uploadCoverByField(item.key)" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
+                      <template #upload-button>
+                        <a-button type="outline" long>{{ item.label }}</a-button>
+                      </template>
+                    </a-upload>
+                    <a-space v-if="form[item.key]" wrap class="row-cover-actions">
+                      <a-button size="small" @click="openUrl(form[item.key])">打开</a-button>
+                      <a-button size="small" @click="copyUrl(form[item.key])">复制地址</a-button>
+                      <a-button size="small" @click="downloadUrl(form[item.key])">下载</a-button>
+                      <a-button size="small" status="danger" @click="clearCoverField(form, item.key)">清空</a-button>
+                    </a-space>
+                    <a-image v-if="form[item.key]" :src="form[item.key]" width="140" />
+                  </div>
+                </div>
               </a-form-item>
             </a-col>
           </a-row>
@@ -96,9 +107,6 @@
             <a-checkbox :model-value="form.is_recommend === 1" @change="form.is_recommend = $event ? 1 : 0">推荐</a-checkbox>
           </div>
 
-          <div v-if="form.cover" class="cover-preview-block">
-            <a-image :src="form.cover" width="140" />
-          </div>
         </a-form>
       </a-card>
 
@@ -186,32 +194,29 @@
             </a-form-item>
 
             <a-row :gutter="16">
-              <a-col :xs="24" :lg="16">
+              <a-col :span="24">
                 <a-form-item label="封面覆盖">
-                  <a-input v-model="item.cover" placeholder="留空则继承公共封面图" />
-                  <div class="field-tip">支持单独上传封面；如果留空，将继承公共封面图。</div>
-                </a-form-item>
-              </a-col>
-              <a-col :xs="24" :lg="8">
-                <a-form-item label="上传封面">
-                  <a-upload :custom-request="uploadRowCoverByRow(item)" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
-                    <template #upload-button>
-                      <a-button type="outline" long>上传本条封面</a-button>
-                    </template>
-                  </a-upload>
+                  <div class="cover-fields-grid">
+                    <div v-for="coverField in coverFields" :key="coverField.key" class="cover-field-block">
+                      <a-input v-model="item[coverField.key]" :placeholder="coverField.overridePlaceholder" />
+                      <a-upload :custom-request="uploadRowCoverByField(item, coverField.key)" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
+                        <template #upload-button>
+                          <a-button type="outline" long>{{ coverField.overrideLabel }}</a-button>
+                        </template>
+                      </a-upload>
+                      <div class="field-tip">留空则继承公共封面图。</div>
+                      <a-space v-if="effectiveCover(item, coverField.key)" wrap class="row-cover-actions">
+                        <a-button size="small" @click="openUrl(effectiveCover(item, coverField.key))">打开</a-button>
+                        <a-button size="small" @click="copyUrl(effectiveCover(item, coverField.key))">复制地址</a-button>
+                        <a-button size="small" @click="downloadUrl(effectiveCover(item, coverField.key))">下载</a-button>
+                        <a-button v-if="item[coverField.key]" size="small" status="danger" @click="clearCoverField(item, coverField.key)">清空覆盖</a-button>
+                      </a-space>
+                      <a-image v-if="effectiveCover(item, coverField.key)" :src="effectiveCover(item, coverField.key)" width="140" />
+                    </div>
+                  </div>
                 </a-form-item>
               </a-col>
             </a-row>
-
-            <div v-if="effectiveCover(item)" class="row-cover-preview">
-              <a-image :src="effectiveCover(item)" width="140" />
-              <a-space wrap class="row-cover-actions">
-                <a-button size="small" @click="openUrl(effectiveCover(item))">打开</a-button>
-                <a-button size="small" @click="copyUrl(effectiveCover(item))">复制地址</a-button>
-                <a-button size="small" @click="downloadUrl(effectiveCover(item))">下载</a-button>
-                <a-button v-if="item.cover" size="small" status="danger" @click="item.cover = ''">清空覆盖</a-button>
-              </a-space>
-            </div>
           </div>
         </div>
       </a-card>
@@ -235,6 +240,7 @@ import { channelListAPI, type ChannelItem } from "@/api/channel";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { menuCascaderAPI } from "@/api/menu";
 import { uploadFileAPI } from "@/api/upload";
+import MenuMultiSelector from "@/components/article/menu-multi-selector.vue";
 import RichTextEditor from "@/components/article/rich-text-editor.vue";
 import { useUploadPreferenceStore } from "@/store/modules/upload-preference";
 
@@ -242,10 +248,20 @@ type BatchRow = ArticleBatchCreateItem & {
   key: number;
 };
 
+type CoverFieldKey = "cover_large" | "cover_medium" | "cover_small";
+
+type CoverFieldConfig = {
+  key: CoverFieldKey;
+  label: string;
+  placeholder: string;
+  overrideLabel: string;
+  overridePlaceholder: string;
+};
+
 const router = useRouter();
 const { confirmDelete, confirmSave } = useConfirmAction();
 const channels = ref<ChannelItem[]>([]);
-const menuOptions = ref<any[]>([]);
+const menuTree = ref<any[]>([]);
 const draftText = ref("");
 const uploadPreference = useUploadPreferenceStore();
 const assetProvider = computed({
@@ -257,12 +273,14 @@ const rowSeed = ref(1);
 const rows = ref<BatchRow[]>([]);
 const form = reactive<Record<string, any>>({
   type: 1,
-  menu_id: undefined,
+  menu_ids: [],
   channel_id: undefined,
   status: 1,
   sort_order: 0,
   cover_type: "1",
-  cover: "",
+  cover_large: "",
+  cover_medium: "",
+  cover_small: "",
   is_paid: 0,
   is_top: 0,
   is_hot: 0,
@@ -311,22 +329,55 @@ const importPlaceholder = computed(() =>
     : "示例：\n春夜助眠视频|适合晚间放松的短视频\n深睡白噪音合集\t夜间持续播放"
 );
 
+const coverFields = computed<CoverFieldConfig[]>(() => {
+  if (form.type === 4) {
+    return [
+      {
+        key: "cover_large",
+        label: "上传大封面图（560x340）",
+        placeholder: "大封面图上传后自动回填 URL",
+        overrideLabel: "上传本条大封面图（560x340）",
+        overridePlaceholder: "留空则继承公共大封面图"
+      },
+      {
+        key: "cover_medium",
+        label: "上传中封面图（300x300）",
+        placeholder: "中封面图上传后自动回填 URL",
+        overrideLabel: "上传本条中封面图（300x300）",
+        overridePlaceholder: "留空则继承公共中封面图"
+      },
+      {
+        key: "cover_small",
+        label: "上传小封面图（104x104）",
+        placeholder: "小封面图上传后自动回填 URL",
+        overrideLabel: "上传本条小封面图（104x104）",
+        overridePlaceholder: "留空则继承公共小封面图"
+      }
+    ];
+  }
+
+  return [
+    {
+      key: "cover_large",
+      label: "上传封面图",
+      placeholder: "封面图上传后自动回填 URL",
+      overrideLabel: "上传本条封面图",
+      overridePlaceholder: "留空则继承公共封面图"
+    }
+  ];
+});
+
 const createRow = (preset?: Partial<BatchRow>): BatchRow => ({
   title: "",
   summary: "",
   content: "",
-  cover: "",
+  cover_large: "",
+  cover_medium: "",
+  cover_small: "",
   cover_type: "",
   ...preset,
   key: rowSeed.value++
 });
-
-const convertMenus = (items: any[]): any[] =>
-  items.map(item => ({
-    value: item.id,
-    label: item.name,
-    children: item.children ? convertMenus(item.children) : undefined
-  }));
 
 const appendRow = (preset?: Partial<BatchRow>) => {
   rows.value.push(createRow(preset));
@@ -398,7 +449,18 @@ const uploadCover = async (option: any) => {
   fd.append("scene", "cover");
   fd.append("provider", assetProvider.value);
   const res = await uploadFileAPI(fd);
-  form.cover = res.data.url;
+  form.cover_large = res.data.url;
+  Message.success("公共封面上传成功");
+  option.onSuccess(res);
+};
+
+const uploadCoverByField = (field: CoverFieldKey) => async (option: any) => {
+  const fd = new FormData();
+  fd.append("file", option.fileItem.file);
+  fd.append("scene", "cover");
+  fd.append("provider", assetProvider.value);
+  const res = await uploadFileAPI(fd);
+  form[field] = res.data.url;
   Message.success("公共封面上传成功");
   option.onSuccess(res);
 };
@@ -409,11 +471,21 @@ const uploadRowCover = async (option: any, row: BatchRow) => {
   fd.append("scene", "cover");
   fd.append("provider", assetProvider.value);
   const res = await uploadFileAPI(fd);
-  row.cover = res.data.url;
+  row.cover_large = res.data.url;
   Message.success("本条封面上传成功");
   option.onSuccess(res);
 };
 const uploadRowCoverByRow = (row: BatchRow) => (option: any) => uploadRowCover(option, row);
+const uploadRowCoverByField = (row: BatchRow, field: CoverFieldKey) => async (option: any) => {
+  const fd = new FormData();
+  fd.append("file", option.fileItem.file);
+  fd.append("scene", "cover");
+  fd.append("provider", assetProvider.value);
+  const res = await uploadFileAPI(fd);
+  row[field] = res.data.url;
+  Message.success("本条封面上传成功");
+  option.onSuccess(res);
+};
 
 const uploadRowAsset = async (option: any, row: BatchRow) => {
   const fd = new FormData();
@@ -447,7 +519,11 @@ const clearRowAsset = (row: BatchRow) => {
   row.content = "";
 };
 
-const effectiveCover = (row: BatchRow) => row.cover || form.cover;
+const effectiveCover = (row: BatchRow, field: CoverFieldKey) => row[field] || form[field] || "";
+
+const clearCoverField = (target: Record<string, any>, field: CoverFieldKey) => {
+  target[field] = "";
+};
 
 const openUrl = (url: string) => {
   if (!url) return;
@@ -473,7 +549,7 @@ const downloadUrl = (url: string) => {
 
 const fetchMenus = async () => {
   const res = await menuCascaderAPI();
-  menuOptions.value = convertMenus(res.data);
+  menuTree.value = res.data;
 };
 
 const fetchChannels = async () => {
@@ -482,9 +558,9 @@ const fetchChannels = async () => {
 };
 
 const submitAction = async () => {
-  const menuID = Array.isArray(form.menu_id) ? form.menu_id.at(-1) : form.menu_id;
-  if (!menuID) {
-    Message.warning("请选择三级菜单");
+  const menuIDs = Array.isArray(form.menu_ids) ? [...new Set(form.menu_ids.map(Number).filter(Boolean))] : [];
+  if (!menuIDs.length) {
+    Message.warning("请至少选择一个第三级菜单");
     return;
   }
   if (!form.channel_id) {
@@ -507,8 +583,15 @@ const submitAction = async () => {
     Message.warning(form.type === 1 ? `第 ${contentMissingIndex + 1} 条文章正文不能为空` : `第 ${contentMissingIndex + 1} 条文章还没有上传正文资源`);
     return;
   }
-  if (!form.cover && rows.value.some(item => !item.cover)) {
-    Message.warning("请配置公共封面图，或为每条文章单独填写封面图");
+  if (!form.cover_large && rows.value.some(item => !item.cover_large)) {
+    Message.warning("请配置公共大封面图，或为每条文章单独填写封面图");
+    return;
+  }
+  if (form.type === 4 && (
+    (!form.cover_medium && rows.value.some(item => !item.cover_medium)) ||
+    (!form.cover_small && rows.value.some(item => !item.cover_small))
+  )) {
+    Message.warning("音频文章需要配置大、中、小三种封面图");
     return;
   }
 
@@ -516,9 +599,13 @@ const submitAction = async () => {
   try {
     const payload = {
       type: form.type,
-      cover: form.cover,
+      cover: form.cover_large,
+      cover_large: form.cover_large,
+      cover_medium: form.cover_medium,
+      cover_small: form.cover_small,
       cover_type: form.cover_type,
-      menu_id: Number(menuID),
+      menu_id: menuIDs[0],
+      menu_ids: menuIDs,
       channel_id: Number(form.channel_id),
       sort_order: Number(form.sort_order || 0),
       is_paid: form.is_paid,
@@ -530,7 +617,10 @@ const submitAction = async () => {
         title: item.title.trim(),
         summary: item.summary.trim(),
         content: item.content.trim(),
-        cover: item.cover?.trim() || "",
+        cover: item.cover_large?.trim() || "",
+        cover_large: item.cover_large?.trim() || "",
+        cover_medium: item.cover_medium?.trim() || "",
+        cover_small: item.cover_small?.trim() || "",
         cover_type: item.cover_type?.trim() || ""
       }))
     };
@@ -634,6 +724,17 @@ onMounted(async () => {
   color: var(--color-text-3);
 }
 
+.cover-fields-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.cover-field-block {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
 .cover-preview-block {
   margin-top: 12px;
 }
@@ -700,12 +801,6 @@ onMounted(async () => {
 .row-upload-actions,
 .row-cover-actions {
   margin-top: 4px;
-}
-
-.row-cover-preview {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
 }
 
 .action-bar {

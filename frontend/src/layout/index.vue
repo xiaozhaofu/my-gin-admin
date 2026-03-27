@@ -231,7 +231,12 @@ const defaultOpenKeys = computed(() =>
 
 const currentTitle = computed(() => (route.meta.title as string) || "Content Admin");
 
-const goTo = (key: string) => router.push(key);
+const goTo = (key: string) => {
+  if (!key || key === route.path) {
+    return;
+  }
+  router.push(key);
+};
 const onQuickActionSelect = (key: string | number) => goTo(String(key));
 const handleNoticeClick = (path: string) => goTo(path);
 const logout = () => {

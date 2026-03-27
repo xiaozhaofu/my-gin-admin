@@ -6,7 +6,7 @@ export type UploadProvider = "aliyun-oss" | "tencent-cos" | "huawei-obs" | "loca
 export const useUploadPreferenceStore = defineStore(
   "upload-preference",
   () => {
-    const provider = ref<UploadProvider>("local");
+    const provider = ref<UploadProvider>("tencent-cos");
 
     const providerLabel = computed(() => {
       switch (provider.value) {

@@ -50,6 +50,7 @@
           <a-space wrap>
             <a-button v-if="canSelectArticles" :disabled="!currentPageRowKeys.length" @click="selectCurrentPage">选中当前页</a-button>
             <a-button v-if="canSelectArticles" :disabled="!selectedRowKeys.length" @click="clearSelected">取消选中</a-button>
+            <a-button v-if="session.can('/api/v1/articles/status#PUT')" :disabled="!selectedRowKeys.length" @click="batchChangeStatus(1)">批量正常</a-button>
             <a-button v-if="session.can('/api/v1/articles/status#PUT')" :disabled="!selectedRowKeys.length" @click="batchChangeStatus(2)">批量隐藏</a-button>
             <a-button v-if="session.can('/api/v1/articles#DELETE')" status="danger" :disabled="!selectedRowKeys.length" @click="batchDelete">批量删除</a-button>
           </a-space>
@@ -69,8 +70,8 @@
               <template #cell="{ record }">
                 <div class="article-title-cell">
                   <a-link class="article-title-link" @click="router.push(`/articles/${record.id}`)">{{ record.title }}</a-link>
-                  <div class="article-title-meta">菜单ID：{{ record.menu_id }} / 渠道：{{ channelLabel(record.channel_id) }}</div>
-                  <a-image v-if="record.cover" :src="record.cover" width="88" />
+                  <div class="article-title-meta">菜单：{{ menuLabels(record) }} / 渠道：{{ channelLabel(record.channel_id) }}</div>
+                  <a-image v-if="coverUrl(record)" :src="coverUrl(record)" width="88" />
                 </div>
               </template>
             </a-table-column>
@@ -106,7 +107,20 @@
                 </a-typography-paragraph>
               </template>
             </a-table-column>
-            <a-table-column title="状态" data-index="status" />
+            <a-table-column title="状态">
+              <template #cell="{ record }">
+                <a-select
+                  v-if="session.can('/api/v1/articles/status#PUT')"
+                  :model-value="record.status"
+                  size="mini"
+                  style="width: 120px"
+                  @change="(value: string | number | boolean) => changeSingleStatus(record, Number(value))"
+                >
+                  <a-option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</a-option>
+                </a-select>
+                <a-tag v-else :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
+              </template>
+            </a-table-column>
             <a-table-column title="浏览量" data-index="view_num" />
             <a-table-column title="创建时间" data-index="created_at" />
             <a-table-column title="操作">
@@ -138,7 +152,7 @@ import { useSessionStore } from "@/store/modules/session";
 const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
-const { confirmBatchDelete, confirmBatchHide, confirmDelete } = useConfirmAction();
+const { confirmBatchDelete, confirmBatchHide, confirmDelete, runConfirmed } = useConfirmAction();
 const list = ref<ArticleItem[]>([]);
 const channels = ref<ChannelItem[]>([]);
 const menuOptions = ref<any[]>([]);
@@ -170,6 +184,13 @@ const articleTypes = [
   { label: "图集", value: 7 }
 ];
 
+const statusOptions = [
+  { label: "正常", value: 1 },
+  { label: "隐藏", value: 2 },
+  { label: "待审核", value: 3 },
+  { label: "已驳回", value: 4 }
+];
+
 const fetchList = async () => {
   const menuID = Array.isArray(filters.menu_id) ? filters.menu_id.at(-1) : filters.menu_id;
   const res = await articleListAPI({ ...filters, menu_id: menuID, page: pagination.current, page_size: pagination.pageSize });
@@ -195,6 +216,18 @@ const convertMenus = (items: any[]): any[] =>
     label: item.name,
     children: item.children ? convertMenus(item.children) : undefined
   }));
+
+const flattenMenuMap = (nodes: any[], out = new Map<number, string>()) => {
+  nodes.forEach(node => {
+    out.set(Number(node.id), node.name);
+    if (node.children?.length) {
+      flattenMenuMap(node.children, out);
+    }
+  });
+  return out;
+};
+
+const menuNameMap = computed(() => flattenMenuMap(menuTree.value));
 
 const findMenuPath = (nodes: any[], targetID?: number, parents: number[] = []): number[] | undefined => {
   if (!targetID) return undefined;
@@ -254,12 +287,43 @@ const removeOne = async (id: number) => {
 };
 
 const batchChangeStatus = async (status: number) => {
-  await confirmBatchHide(async () => {
+  const statusName = statusLabel(status);
+  const action = async () => {
     await articleStatusAPI({ ids: selectedRowKeys.value, status });
     Message.success("状态已更新");
     selectedRowKeys.value = [];
     fetchList();
-  });
+  };
+
+  if (status === 2) {
+    await confirmBatchHide(action);
+    return;
+  }
+
+  await runConfirmed(
+    {
+      title: "确认批量修改状态",
+      content: `确认将当前页选中的文章批量设置为${statusName}吗？`
+    },
+    action
+  );
+};
+
+const changeSingleStatus = async (record: ArticleItem, status: number) => {
+  if (record.status === status) {
+    return;
+  }
+  await runConfirmed(
+    {
+      title: "确认修改状态",
+      content: `确认将《${record.title}》的状态修改为${statusLabel(status)}吗？`
+    },
+    async () => {
+      await articleStatusAPI({ ids: [record.id], status });
+      Message.success("状态已更新");
+      fetchList();
+    }
+  );
 };
 
 const extractText = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -278,6 +342,51 @@ const channelLabel = (channelID: number) => {
   const channel = channels.value.find(item => item.id === channelID);
   if (!channel) return String(channelID);
   return `${channel.name}（${channel.code}）`;
+};
+
+const menuLabels = (record: ArticleItem) => {
+  const ids = Array.isArray(record.menu_ids) && record.menu_ids.length ? record.menu_ids : [record.menu_id];
+  return ids
+    .map(id => menuNameMap.value.get(Number(id)) || String(id))
+    .filter(Boolean)
+    .join(" / ");
+};
+
+const coverUrl = (record: ArticleItem) => {
+  if (record.type === 4) {
+    return record.cover_small || record.cover_medium || record.cover_large || "";
+  }
+  return record.cover_large || record.cover_medium || record.cover_small || "";
+};
+
+const statusLabel = (status: number) => {
+  switch (status) {
+    case 1:
+      return "正常";
+    case 2:
+      return "隐藏";
+    case 3:
+      return "待审核";
+    case 4:
+      return "已驳回";
+    default:
+      return String(status);
+  }
+};
+
+const statusColor = (status: number) => {
+  switch (status) {
+    case 1:
+      return "green";
+    case 2:
+      return "gray";
+    case 3:
+      return "arcoblue";
+    case 4:
+      return "red";
+    default:
+      return "gray";
+  }
 };
 
 const openInNewTab = (url: string) => {

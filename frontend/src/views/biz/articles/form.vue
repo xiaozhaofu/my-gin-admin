@@ -86,6 +86,7 @@
             </a-form-item>
           </a-form>
         </a-card>
+
       </div>
 
       <div class="article-form-side">
@@ -101,17 +102,6 @@
                   <a-option :value="6">图片</a-option>
                 </a-select>
               </a-form-item>
-
-              <a-form-item label="三级菜单">
-                <a-cascader
-                  v-model="form.menu_id"
-                  :options="menuOptions"
-                  allow-clear
-                  :placeholder="menuOptions.length ? '请选择内容菜单' : '当前没有可用菜单，请先到内容菜单页维护'"
-                />
-                <div class="field-tip">直接读取 `menus` 表三级树结构，最终保存叶子节点 ID。</div>
-              </a-form-item>
-
               <a-form-item label="渠道">
                 <a-select v-model="form.channel_id" allow-clear placeholder="请选择渠道">
                   <a-option v-for="item in channels" :key="item.id" :value="item.id">
@@ -135,6 +125,12 @@
             </a-form>
           </a-card>
 
+          <a-card class="article-panel article-menu-panel" :bordered="false">
+            <template #title>三级菜单</template>
+            <MenuMultiSelector v-model="form.menu_ids" :menus="menuTree" placeholder="点击选择第三级分类" />
+            <div class="field-tip">直接读取 `menus` 表三级树结构，点击输入框展开三级分类菜单，只允许勾选第三级叶子节点，最终同步写入 `article_menus` 中间表。</div>
+          </a-card>
+
           <a-card class="article-panel" :bordered="false">
             <template #title>封面资源</template>
             <a-space direction="vertical" style="width: 100%">
@@ -145,19 +141,24 @@
                 <a-option value="local">本地存储</a-option>
               </a-select>
               <div class="field-tip">这里设置的是全局默认上传类型。当前页面的封面上传、正文资源上传和资源库默认筛选都会跟随这个值。</div>
-              <a-input v-model="form.cover" placeholder="封面图上传后自动回填 URL" />
-              <a-image v-if="form.cover" :src="form.cover" class="cover-preview" />
-              <a-upload :custom-request="uploadCover" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
-                <template #upload-button>
-                  <a-button type="outline" long>上传封面图</a-button>
-                </template>
-              </a-upload>
-              <a-space v-if="form.cover" wrap>
-                <a-button size="small" @click="openUrl(form.cover)">打开</a-button>
-                <a-button size="small" @click="copyUrl(form.cover)">复制地址</a-button>
-                <a-button size="small" @click="downloadUrl(form.cover)">下载</a-button>
-                <a-button size="small" status="danger" @click="clearCover">清空</a-button>
-              </a-space>
+              <a-alert v-if="showLegacyAudioCoverHint" type="warning">
+                当前音频文章是历史单封面数据，系统已保留大图，请补齐中图和小图后再保存。
+              </a-alert>
+              <div v-for="item in coverFields" :key="item.key" class="cover-field-block">
+                <a-input v-model="form[item.key]" :placeholder="item.placeholder" />
+                <a-upload :custom-request="uploadCoverByField(item.key)" :show-file-list="false" accept=".jpg,.jpeg,.png,.gif,.webp">
+                  <template #upload-button>
+                    <a-button type="outline" long>{{ item.label }}</a-button>
+                  </template>
+                </a-upload>
+                <a-space v-if="form[item.key]" wrap>
+                  <a-button size="small" @click="openUrl(form[item.key])">打开</a-button>
+                  <a-button size="small" @click="copyUrl(form[item.key])">复制地址</a-button>
+                  <a-button size="small" @click="downloadUrl(form[item.key])">下载</a-button>
+                  <a-button size="small" status="danger" @click="clearCover(item.key)">清空</a-button>
+                </a-space>
+                <a-image v-if="form[item.key]" :src="form[item.key]" class="cover-preview" />
+              </div>
             </a-space>
           </a-card>
 
@@ -186,6 +187,7 @@ import { menuCascaderAPI } from "@/api/menu";
 import { uploadFileAPI } from "@/api/upload";
 import type { UploadRecord } from "@/api/upload";
 import AssetLibraryModal from "@/components/article/asset-library-modal.vue";
+import MenuMultiSelector from "@/components/article/menu-multi-selector.vue";
 import RichTextEditor from "@/components/article/rich-text-editor.vue";
 import { useUploadPreferenceStore } from "@/store/modules/upload-preference";
 
@@ -211,7 +213,6 @@ const articleTypeLabel = computed(() => {
       return "纯文本文章";
   }
 });
-const menuOptions = ref<any[]>([]);
 const menuTree = ref<any[]>([]);
 const channels = ref<ChannelItem[]>([]);
 const editorRef = ref<EditorExpose | null>(null);
@@ -225,12 +226,25 @@ const form = reactive<Record<string, any>>({
   title: "",
   summary: "",
   type: 1,
-  cover: "",
+  cover_large: "",
+  cover_medium: "",
+  cover_small: "",
   cover_type: "1",
-  menu_id: undefined,
+  menu_ids: [],
   channel_id: undefined,
   status: 1,
   content: ""
+});
+
+const coverFields = computed(() => {
+  if (form.type === 4) {
+    return [
+      { key: "cover_large", label: "上传大封面图（560x340）", placeholder: "大封面图上传后自动回填 URL" },
+      { key: "cover_medium", label: "上传中封面图（300x300）", placeholder: "中封面图上传后自动回填 URL" },
+      { key: "cover_small", label: "上传小封面图（104x104）", placeholder: "小封面图上传后自动回填 URL" }
+    ];
+  }
+  return [{ key: "cover_large", label: "上传封面图", placeholder: "封面图上传后自动回填 URL" }];
 });
 
 const uploadAccept = computed(() => (form.type === 2 ? ".mp4,.mov,.avi,.mkv" : form.type === 4 ? ".mp3,.wav,.aac,.m4a" : ".jpg,.jpeg,.png,.gif,.webp"));
@@ -245,16 +259,22 @@ const currentAssetUrl = computed(() => {
   return html.match(/href="([^"]+)"/i)?.[1] || "";
 });
 
-const uploadCover = async (option: any) => {
+const showLegacyAudioCoverHint = computed(
+  () => isEdit.value && form.type === 4 && Boolean(form.cover_large) && (!form.cover_medium || !form.cover_small)
+);
+
+const uploadCover = async (option: any, field: string) => {
   const fd = new FormData();
   fd.append("file", option.fileItem.file);
   fd.append("scene", "cover");
   fd.append("provider", assetProvider.value);
   const res = await uploadFileAPI(fd);
-  form.cover = res.data.url;
+  form[field] = res.data.url;
   Message.success("封面图上传成功");
   option.onSuccess(res);
 };
+
+const uploadCoverByField = (field: string) => (option: any) => uploadCover(option, field);
 
 const uploadAsset = async (option: any) => {
   const fd = new FormData();
@@ -285,7 +305,6 @@ const buildAssetHTML = (url: string) => {
 const fetchMenus = async () => {
   const res = await menuCascaderAPI();
   menuTree.value = res.data;
-  menuOptions.value = convertMenus(res.data);
 };
 
 const fetchChannels = async () => {
@@ -308,8 +327,8 @@ const findMenuPath = (nodes: any[], targetID?: number, parents: number[] = []): 
   return undefined;
 };
 
-const clearCover = () => {
-  form.cover = "";
+const clearCover = (field: string) => {
+  form[field] = "";
 };
 
 const clearAsset = () => {
@@ -346,26 +365,28 @@ const downloadUrl = (url: string) => {
   a.remove();
 };
 
-const convertMenus = (items: any[]): any[] =>
-  items.map(item => ({
-    value: item.id,
-    label: item.name,
-    children: item.children ? convertMenus(item.children) : undefined
-  }));
-
 const loadDetail = async () => {
   if (!isEdit.value) return;
   const res = await articleDetailAPI(route.params.id as string);
   Object.assign(form, res.data, {
     content: res.data.content?.content || "",
-    menu_id: findMenuPath(menuTree.value, res.data.menu_id) || [res.data.menu_id]
+    menu_ids: Array.isArray(res.data.menu_ids) && res.data.menu_ids.length ? res.data.menu_ids : (res.data.menu_id ? [res.data.menu_id] : [])
   });
 };
 
 const submitAction = async () => {
-  const payload: Record<string, any> = { ...form, menu_id: Array.isArray(form.menu_id) ? form.menu_id.at(-1) : form.menu_id };
-  if (!payload.cover) {
-    Message.error("请先上传封面图");
+  const menuIDs = Array.isArray(form.menu_ids) ? [...new Set(form.menu_ids.map(Number).filter(Boolean))] : [];
+  const payload: Record<string, any> = { ...form, menu_ids: menuIDs, menu_id: menuIDs[0] };
+  if (!payload.cover_large) {
+    Message.error("请先上传大封面图");
+    return false;
+  }
+  if (payload.type === 4 && (!payload.cover_medium || !payload.cover_small)) {
+    Message.error("音频文章需要上传大、中、小三种封面图");
+    return false;
+  }
+  if (!payload.menu_ids?.length) {
+    Message.error("请至少选择一个内容菜单");
     return false;
   }
   if (isEdit.value) {
@@ -455,7 +476,7 @@ onMounted(async () => {
 
 .article-form-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 1.22fr) minmax(520px, 1.04fr);
   gap: 16px;
   min-height: 0;
 }
@@ -499,10 +520,20 @@ onMounted(async () => {
   color: var(--color-text-3);
 }
 
+.article-menu-panel {
+  min-height: 0;
+}
+
 .asset-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.cover-field-block {
+  display: grid;
+  gap: 10px;
+  width: 100%;
 }
 
 .asset-preview {

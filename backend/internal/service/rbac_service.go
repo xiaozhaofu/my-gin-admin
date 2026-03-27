@@ -202,6 +202,10 @@ func expandAdminMenuPolicies(roleCode string, menu models.AdminMenu) [][]string 
 	if menu.APIPath == "/api/v1/articles" && menu.Method == "GET" {
 		rules = append(rules, []string{roleCode, "/api/v1/channels", "GET"})
 	}
+	if menu.APIPath == "/api/v1/articles" && menu.Method == "POST" {
+		rules = append(rules, []string{roleCode, "/api/v1/channels", "GET"})
+		rules = append(rules, []string{roleCode, "/api/v1/menus/cascader", "GET"})
+	}
 	if menu.APIPath == "/api/v1/articles/batch" && menu.Method == "POST" {
 		rules = append(rules, []string{roleCode, "/api/v1/channels", "GET"})
 		rules = append(rules, []string{roleCode, "/api/v1/menus/cascader", "GET"})

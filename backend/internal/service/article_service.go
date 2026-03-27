@@ -33,14 +33,24 @@ func (s *ArticleService) Detail(id int64) (*models.Article, error) {
 }
 
 func (s *ArticleService) Save(id int64, adminID int64, req dto.ArticleUpsertRequest) error {
+	menuIDs, err := resolveArticleMenuIDs(req.MenuID, req.MenuIDs)
+	if err != nil {
+		return err
+	}
+	coverLarge, coverMedium, coverSmall := resolveArticleCovers(req.Type, req.Cover, req.CoverLarge, req.CoverMedium, req.CoverSmall)
+	if err := validateArticleCovers(req.Type, coverLarge, coverMedium, coverSmall); err != nil {
+		return err
+	}
 	item := &models.Article{
 		BaseID:      models.BaseID{ID: id},
 		Title:       req.Title,
 		Summary:     req.Summary,
 		Type:        models.ArticleType(req.Type),
-		Cover:       req.Cover,
+		CoverLarge:  coverLarge,
+		CoverMedium: coverMedium,
+		CoverSmall:  coverSmall,
 		CoverType:   req.CoverType,
-		MenuID:      req.MenuID,
+		MenuID:      menuIDs[0],
 		ChannelID:   req.ChannelID,
 		SortOrder:   req.SortOrder,
 		IsPaid:      models.BooleanField(req.IsPaid),
@@ -50,7 +60,7 @@ func (s *ArticleService) Save(id int64, adminID int64, req dto.ArticleUpsertRequ
 		IsRecommend: models.BooleanField(req.IsRecommend),
 		Status:      models.ArticleStatus(req.Status),
 	}
-	return s.repo.Save(item, req.Content)
+	return s.repo.Save(item, req.Content, menuIDs)
 }
 
 func (s *ArticleService) BatchCreate(adminID int64, req dto.ArticleBatchCreateRequest) ([]int64, error) {
@@ -60,9 +70,14 @@ func (s *ArticleService) BatchCreate(adminID int64, req dto.ArticleBatchCreateRe
 	if len(req.Items) > 100 {
 		return nil, fmt.Errorf("单次最多批量新增 100 篇文章")
 	}
+	menuIDs, err := resolveArticleMenuIDs(req.MenuID, req.MenuIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	articles := make([]*models.Article, 0, len(req.Items))
 	contents := make([]string, 0, len(req.Items))
+	menuIDsByArticle := make([][]int64, 0, len(req.Items))
 	for idx, row := range req.Items {
 		title := strings.TrimSpace(row.Title)
 		content := strings.TrimSpace(row.Content)
@@ -72,12 +87,15 @@ func (s *ArticleService) BatchCreate(adminID int64, req dto.ArticleBatchCreateRe
 		if content == "" {
 			return nil, fmt.Errorf("第 %d 行正文不能为空", idx+1)
 		}
-		cover := strings.TrimSpace(row.Cover)
-		if cover == "" {
-			cover = strings.TrimSpace(req.Cover)
-		}
-		if cover == "" {
-			return nil, fmt.Errorf("第 %d 行缺少封面图", idx+1)
+		coverLarge, coverMedium, coverSmall := resolveArticleCovers(
+			req.Type,
+			firstNonEmpty(row.Cover, req.Cover),
+			firstNonEmpty(row.CoverLarge, req.CoverLarge),
+			firstNonEmpty(row.CoverMedium, req.CoverMedium),
+			firstNonEmpty(row.CoverSmall, req.CoverSmall),
+		)
+		if err := validateArticleCovers(req.Type, coverLarge, coverMedium, coverSmall); err != nil {
+			return nil, fmt.Errorf("第 %d 行%s", idx+1, err.Error())
 		}
 		coverType := strings.TrimSpace(row.CoverType)
 		if coverType == "" {
@@ -91,9 +109,11 @@ func (s *ArticleService) BatchCreate(adminID int64, req dto.ArticleBatchCreateRe
 			Title:       title,
 			Summary:     strings.TrimSpace(row.Summary),
 			Type:        models.ArticleType(req.Type),
-			Cover:       cover,
+			CoverLarge:  coverLarge,
+			CoverMedium: coverMedium,
+			CoverSmall:  coverSmall,
 			CoverType:   coverType,
-			MenuID:      req.MenuID,
+			MenuID:      menuIDs[0],
 			ChannelID:   req.ChannelID,
 			SortOrder:   req.SortOrder,
 			IsPaid:      models.BooleanField(req.IsPaid),
@@ -104,9 +124,10 @@ func (s *ArticleService) BatchCreate(adminID int64, req dto.ArticleBatchCreateRe
 			Status:      models.ArticleStatus(req.Status),
 		})
 		contents = append(contents, content)
+		menuIDsByArticle = append(menuIDsByArticle, menuIDs)
 	}
 
-	return s.repo.BatchCreate(articles, contents)
+	return s.repo.BatchCreate(articles, contents, menuIDsByArticle)
 }
 
 func (s *ArticleService) Delete(ids []int64) error { return s.repo.Delete(ids) }
@@ -131,4 +152,60 @@ func (s *ArticleService) resolveScope(claims *auth.Claims) (repository.ArticleSc
 		AdminID: scope.AdminID,
 		DeptIDs: scope.DeptIDs,
 	}, nil
+}
+
+func resolveArticleMenuIDs(primary int64, menuIDs []int64) ([]int64, error) {
+	resolved := make([]int64, 0, len(menuIDs)+1)
+	seen := make(map[int64]struct{}, len(menuIDs)+1)
+	appendMenu := func(menuID int64) {
+		if menuID <= 0 {
+			return
+		}
+		if _, ok := seen[menuID]; ok {
+			return
+		}
+		seen[menuID] = struct{}{}
+		resolved = append(resolved, menuID)
+	}
+
+	for _, menuID := range menuIDs {
+		appendMenu(menuID)
+	}
+	appendMenu(primary)
+	if len(resolved) == 0 {
+		return nil, fmt.Errorf("请至少选择一个内容菜单")
+	}
+	return resolved, nil
+}
+
+func resolveArticleCovers(articleType int, cover, coverLarge, coverMedium, coverSmall string) (string, string, string) {
+	large := strings.TrimSpace(firstNonEmpty(coverLarge, cover))
+	medium := strings.TrimSpace(firstNonEmpty(coverMedium, cover))
+	small := strings.TrimSpace(firstNonEmpty(coverSmall, cover))
+
+	if articleType != int(models.ArticleTypeAudio) {
+		return large, "", ""
+	}
+	return large, medium, small
+}
+
+func validateArticleCovers(articleType int, coverLarge, coverMedium, coverSmall string) error {
+	if strings.TrimSpace(coverLarge) == "" {
+		return fmt.Errorf("缺少大封面图")
+	}
+	if articleType == int(models.ArticleTypeAudio) {
+		if strings.TrimSpace(coverMedium) == "" || strings.TrimSpace(coverSmall) == "" {
+			return fmt.Errorf("音频文章需要同时上传中封面图和小封面图")
+		}
+	}
+	return nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }

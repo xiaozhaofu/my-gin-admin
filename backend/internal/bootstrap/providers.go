@@ -61,6 +61,18 @@ func newProviders(runtime *Runtime) (*providerSet, error) {
 	if err := autoMigrate(mysqlDB); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
+	if err := ensureArticleCoverSchema(mysqlDB); err != nil {
+		return nil, fmt.Errorf("ensure article cover schema: %w", err)
+	}
+	if err := backfillArticleCover(mysqlDB); err != nil {
+		return nil, fmt.Errorf("backfill article cover: %w", err)
+	}
+	if err := ensureArticleMenuSchema(mysqlDB); err != nil {
+		return nil, fmt.Errorf("ensure article_menus schema: %w", err)
+	}
+	if err := backfillArticleMenus(mysqlDB); err != nil {
+		return nil, fmt.Errorf("backfill article menus: %w", err)
+	}
 	if err := ensureUploadFileSchema(mysqlDB); err != nil {
 		return nil, fmt.Errorf("ensure upload_files schema: %w", err)
 	}
@@ -186,6 +198,83 @@ func autoMigrate(db *gorm.DB) error {
 }
 
 func newNoopWorker(_ context.Context) error { return nil }
+
+func ensureArticleCoverSchema(db *gorm.DB) error {
+	type columnSpec struct {
+		name       string
+		definition string
+	}
+
+	specs := []columnSpec{
+		{name: "cover_large", definition: "ALTER TABLE articles ADD COLUMN cover_large varchar(255) NOT NULL DEFAULT ''"},
+		{name: "cover_medium", definition: "ALTER TABLE articles ADD COLUMN cover_medium varchar(255) NOT NULL DEFAULT ''"},
+		{name: "cover_small", definition: "ALTER TABLE articles ADD COLUMN cover_small varchar(255) NOT NULL DEFAULT ''"},
+	}
+
+	for _, spec := range specs {
+		exists, err := hasColumn(db, "articles", spec.name)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			if err := db.Exec(spec.definition).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func backfillArticleCover(db *gorm.DB) error {
+	hasLegacyCover, err := hasColumn(db, "articles", "cover")
+	if err != nil {
+		return err
+	}
+	if !hasLegacyCover {
+		return nil
+	}
+
+	updateSQL := `
+UPDATE articles
+SET cover_large = CASE WHEN cover_large = '' OR cover_large IS NULL THEN cover ELSE cover_large END,
+    cover_medium = CASE WHEN cover_medium = '' OR cover_medium IS NULL THEN cover ELSE cover_medium END,
+    cover_small = CASE WHEN cover_small = '' OR cover_small IS NULL THEN cover ELSE cover_small END
+WHERE cover IS NOT NULL AND cover <> ''
+`
+
+	return db.Exec(updateSQL).Error
+}
+
+func ensureArticleMenuSchema(db *gorm.DB) error {
+	createTableSQL := `
+CREATE TABLE IF NOT EXISTS article_menus (
+  article_id BIGINT UNSIGNED NOT NULL,
+  menu_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (article_id, menu_id),
+  KEY idx_article_menus_menu_id (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+`
+
+	return db.Exec(createTableSQL).Error
+}
+
+func backfillArticleMenus(db *gorm.DB) error {
+	backfillSQL := `
+INSERT INTO article_menus (article_id, menu_id)
+SELECT a.id, a.menu_id
+FROM articles a
+WHERE a.menu_id > 0
+  AND NOT EXISTS (
+    SELECT 1
+    FROM article_menus am
+    WHERE am.article_id = a.id
+      AND am.menu_id = a.menu_id
+  )
+`
+
+	return db.Exec(backfillSQL).Error
+}
 
 func ensureUploadFileSchema(db *gorm.DB) error {
 	type columnSpec struct {

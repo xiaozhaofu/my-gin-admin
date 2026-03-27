@@ -157,7 +157,9 @@ type Article struct {
 	Title       string        `gorm:"column:title;size:255;not null;index" json:"title"`
 	Summary     string        `gorm:"column:summary;size:255;not null;default:''" json:"summary"`
 	Type        ArticleType   `gorm:"column:type;not null;default:1;index" json:"type"`
-	Cover       string        `gorm:"column:cover;size:255;not null;default:''" json:"cover"`
+	CoverLarge  string        `gorm:"type:varchar(255);comment:大尺寸封面(560x340)" json:"cover_large"`
+	CoverMedium string        `gorm:"type:varchar(255);comment:中尺寸封面(300x300)" json:"cover_medium"`
+	CoverSmall  string        `gorm:"type:varchar(255);comment:小尺寸封面(104x104)" json:"cover_small"`
 	CoverType   string        `gorm:"column:cover_type;size:20;not null;default:'1'" json:"cover_type"`
 	MenuID      int64         `gorm:"column:menu_id;not null;index" json:"menu_id"`
 	ChannelID   int64         `gorm:"column:channel_id;not null;index" json:"channel_id"`
@@ -173,10 +175,19 @@ type Article struct {
 	CollectNum  int           `gorm:"column:collect_num;not null;default:0" json:"collect_num"`
 	Status      ArticleStatus `gorm:"column:status;not null;default:1;index" json:"status"`
 	BaseTimeField
-	Content ArticleContent `gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE" json:"content"`
+	Content  ArticleContent `gorm:"foreignKey:ArticleID;constraint:OnDelete:CASCADE" json:"content"`
+	MenuIDs  []int64        `gorm:"-" json:"menu_ids"`
+	MenuRefs []ArticleMenu  `gorm:"foreignKey:ArticleID" json:"-"`
 }
 
 func (Article) TableName() string { return "articles" }
+
+type ArticleMenu struct {
+	ArticleID int64 `gorm:"column:article_id;primaryKey" json:"article_id"`
+	MenuID    int64 `gorm:"column:menu_id;primaryKey" json:"menu_id"`
+}
+
+func (ArticleMenu) TableName() string { return "article_menus" }
 
 type ArticleContent struct {
 	BaseID
