@@ -15,6 +15,7 @@ export const routes: RouteRecordRaw[] = [
       { path: "articles/new", name: "article-new", component: () => import("@/views/biz/articles/form.vue"), meta: { title: "新增文章", permission: "/api/v1/articles#POST", hidden: true } },
       { path: "articles/:id", name: "article-edit", component: () => import("@/views/biz/articles/form.vue"), meta: { title: "文章详情", permission: "/api/v1/articles/:id#PUT", hidden: true } },
       { path: "content-menus", name: "content-menus", component: () => import("@/views/biz/menus/index.vue"), meta: { title: "内容菜单", permission: "/api/v1/menus/tree#GET" } },
+      { path: "channels", name: "channels", component: () => import("@/views/biz/channels/index.vue"), meta: { title: "渠道管理", permission: "/api/v1/channels#GET" } },
       { path: "uploads", name: "uploads", component: () => import("@/views/biz/uploads/index.vue"), meta: { title: "资源上传", permission: "/api/v1/uploads#GET" } },
       { path: "system/admin-menus", name: "system-admin-menus", component: () => import("@/views/biz/system/admin-menus.vue"), meta: { title: "后台菜单", permission: "/api/v1/admin-menus/tree#GET" } },
       { path: "system/admins", name: "system-admins", component: () => import("@/views/biz/system/admins.vue"), meta: { title: "管理员", permission: "/api/v1/admins#GET" } },

@@ -75,7 +75,11 @@
                 </div>
               </template>
             </a-table-column>
-            <a-table-column title="类型" data-index="type" />
+            <a-table-column title="类型">
+              <template #cell="{ record }">
+                <a-tag :color="typeColor(record.type)">{{ typeLabel(record.type) }}</a-tag>
+              </template>
+            </a-table-column>
             <a-table-column title="内容预览">
               <template #cell="{ record }">
                 <div v-if="record.type === 2" class="preview-block">
@@ -357,6 +361,48 @@ const coverUrl = (record: ArticleItem) => {
     return record.cover_small || record.cover_medium || record.cover_large || "";
   }
   return record.cover_large || record.cover_medium || record.cover_small || "";
+};
+
+const typeLabel = (type: number) => {
+  switch (type) {
+    case 1:
+      return "纯文本";
+    case 2:
+      return "视频";
+    case 3:
+      return "视频集合";
+    case 4:
+      return "音频";
+    case 5:
+      return "音频集合";
+    case 6:
+      return "图片";
+    case 7:
+      return "图集";
+    default:
+      return String(type);
+  }
+};
+
+const typeColor = (type: number) => {
+  switch (type) {
+    case 1:
+      return "gray";
+    case 2:
+      return "arcoblue";
+    case 3:
+      return "blue";
+    case 4:
+      return "green";
+    case 5:
+      return "cyan";
+    case 6:
+      return "orange";
+    case 7:
+      return "purple";
+    default:
+      return "gray";
+  }
 };
 
 const statusLabel = (status: number) => {

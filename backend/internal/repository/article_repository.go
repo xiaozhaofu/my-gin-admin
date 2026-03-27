@@ -117,18 +117,49 @@ func (r *ArticleRepository) BatchCreate(items []*models.Article, contents []stri
 }
 
 func (r *ArticleRepository) saveWithTx(tx *gorm.DB, article *models.Article, content string, menuIDs []int64) error {
-	if err := tx.Save(article).Error; err != nil {
-		return err
+	if article.ID == 0 {
+		if err := tx.Create(article).Error; err != nil {
+			return err
+		}
+	} else {
+		updates := map[string]any{
+			"title":        article.Title,
+			"summary":      article.Summary,
+			"type":         article.Type,
+			"cover_large":  article.CoverLarge,
+			"cover_medium": article.CoverMedium,
+			"cover_small":  article.CoverSmall,
+			"cover_type":   article.CoverType,
+			"menu_id":      article.MenuID,
+			"channel_id":   article.ChannelID,
+			"sort_order":   article.SortOrder,
+			"is_paid":      article.IsPaid,
+			"admin_id":     article.AdminID,
+			"is_top":       article.IsTop,
+			"is_hot":       article.IsHot,
+			"is_recommend": article.IsRecommend,
+			"status":       article.Status,
+		}
+		if err := tx.Model(&models.Article{}).Where("id = ?", article.ID).Updates(updates).Error; err != nil {
+			return err
+		}
 	}
+
 	var detail models.ArticleContent
 	err := tx.Where("article_id = ?", article.ID).First(&detail).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}
-	detail.ArticleID = article.ID
-	detail.Content = content
-	if err := tx.Save(&detail).Error; err != nil {
-		return err
+	if err == gorm.ErrRecordNotFound {
+		detail.ArticleID = article.ID
+		detail.Content = content
+		if err := tx.Create(&detail).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := tx.Model(&models.ArticleContent{}).Where("article_id = ?", article.ID).Update("content", content).Error; err != nil {
+			return err
+		}
 	}
 	return syncArticleMenus(tx, article.ID, menuIDs)
 }
